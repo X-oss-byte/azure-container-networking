@@ -315,7 +315,7 @@ acncli-image-name-and-tag: # util target to print the CNI manager image name and
 	@echo $(IMAGE_REGISTRY)/$(ACNCLI_IMAGE):$(ACNCLI_PLATFORM_TAG)
 
 acncli-image: ## build cni-manager container image.
-	$ (MAKE) container \
+	$(MAKE) container \
 		DOCKERFILE=tools/acncli/Dockerfile \
 		IMAGE=$(ACNCLI_IMAGE) \
 		TAG=$(ACNCLI_PLATFORM_TAG)
