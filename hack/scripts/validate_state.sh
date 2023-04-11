@@ -34,6 +34,16 @@ do
         sleep 10
     done
 
+    cns_pod=$(kubectl get pod -l k8s-app=azure-cns -n kube-system -o wide | grep "$node_name" | awk '{print $1}')
+    echo "azure-cns pod : $cns_pod"
+
+    while ! [ -s "cns_endpoints.json" ]
+    do
+        echo "trying to get the cns_endpoints"
+        kubectl exec -it "$cns_pod" -n kube-system -- curl localhost:10090/debug/ipaddresses -d '{"IPConfigStateFilter":["Assigned"]}' > cns_endpoints.json
+        sleep 10
+    done
+
     total_pods=$(kubectl get pods --all-namespaces -o wide --field-selector spec.nodeName="$node_name",status.phase=Running --output json)
 
     echo "Checking if there are any pods with no ips"
@@ -60,7 +70,7 @@ do
     echo "Number of azure endpoint ips : $num_of_azure_endpoint_ips"
 
     if [ "$num_of_pod_ips" != "$num_of_azure_endpoint_ips" ]; then
-        printf "Error: Number of pods in running state is less than total ips in the azure ednpoint file" >&2 
+        printf "Error: Number of pods in running state is less than total ips in the azure endpoint file" >&2 
         exit 1
     fi
 
@@ -92,7 +102,25 @@ do
         fi
     done
 
+    num_of_cns_endpoints=$(cat cns_endpoints.json | jq -r '[.IPConfigurationStatus | .[] | select(.IPAddress != null)] | length')
+    cns_endpoint_ips=$(cat cns_endpoints.json | jq -r '(.IPConfigurationStatus | .[] | select(.IPAddress != null) | .IPAddress)')
+    echo "Number of cns endpoints: $num_of_cns_endpoints"
+
+    if [ "$num_of_pod_ips" != "$num_of_cns_endpoints" ]; then
+        printf "Error: Number of pods in running state is less than total ips in the cns endpoint file" >&2 
+        exit 1
+    fi
+
+    for ip in "${pod_ips[@]}"
+    do
+        find_in_array "$cns_endpoint_ips" "$ip" "cns_endpoints.json"
+        if [[ $? -eq 1 ]]; then
+            printf "Error: %s Not found in the cns_endpoints.json" "$ip" >&2
+            exit 1
+        fi
+    done
+
     #We are restarting the systmemd network and checking that the connectivity works after the restart. For more details: https://github.com/cilium/cilium/issues/18706
     kubectl exec -i "$privileged_pod" -n kube-system -- bash -c "chroot /host /bin/bash -c 'systemctl restart systemd-networkd'"
-    rm -rf cilium_endpoints.json azure_endpoints.json
+    rm -rf cilium_endpoints.json azure_endpoints.json cns_endpoints.json
 done
