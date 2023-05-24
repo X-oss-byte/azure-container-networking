@@ -18,7 +18,7 @@ stages:
                 make -C ./hack/swift azcfg AZCLI=az REGION=$(LOCATION)
                 make -C ./hack/swift overlay-byocni-up AZCLI=az REGION=$(LOCATION) SUB=$(SUBSCRIPTION_ID) CLUSTER=${RESOURCE_GROUP} NODE_COUNT=10 VM_SIZE=Standard_DS4_v2
                 echo "Update cluster and remove kube-proxy"
-                az aks update -n ${RESOURCE_GROUP} -g ${RESOURCE_GROUP} --kube-proxy-config ./hack/swift/kube-proxy.json
+                # az aks update -n ${RESOURCE_GROUP} -g ${RESOURCE_GROUP} --kube-proxy-config ./hack/swift/kube-proxy.json
             name: "CreateAksCluster"
             displayName: "Create AKS Cluster"
   - stage: install_cilium
