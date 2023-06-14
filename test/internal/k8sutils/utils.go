@@ -218,12 +218,16 @@ func WaitForPodsRunning(ctx context.Context, clientset *kubernetes.Clientset, na
 
 		for _, pod := range podList.Items {
 			if pod.Status.Phase == corev1.PodPending {
+				log.Printf("pod %s/%s has not been allocated an IP", pod.Namespace, pod.Name)
+				log.Printf("pod status: %v", pod)
 				return errors.New("some pods still pending")
 			}
 		}
 
 		for _, pod := range podList.Items {
 			if pod.Status.PodIP == "" {
+				log.Printf("pod %s/%s has not been allocated an IP", pod.Namespace, pod.Name)
+				log.Printf("pod status: %v", pod)
 				return errors.New("a pod has not been allocated an IP")
 			}
 		}
