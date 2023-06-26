@@ -11,7 +11,7 @@ steps:
       addSpnToEnvironment: true
       inlineScript: |
         export RESTART_CASE=${{ parameters.restartCase }}
-        make -C ./hack/swift set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(make revision)
+        make -C ./hack/swift set-kubeconf AZCLI=az CLUSTER=$(CLUSTER)
         kubectl get pods -A
         make test-validate-state
     name: "ValidateState"
