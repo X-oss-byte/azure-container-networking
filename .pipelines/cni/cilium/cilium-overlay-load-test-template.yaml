@@ -62,7 +62,7 @@ stages:
   #               cd ../../../..
   #               kubectl get po -owide -A
   - stage: pod_deployment
-    dependsOn: install_cilium
+    # dependsOn: install_cilium
     displayName: "Pod Deployment"
     jobs:
       - job: deploy_pods
