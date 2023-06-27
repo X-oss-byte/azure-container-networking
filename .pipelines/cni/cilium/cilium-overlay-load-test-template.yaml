@@ -80,7 +80,7 @@ stages:
             parameters:
               clusterName: ${{ parameters.clusterName }}
   - stage: connectivity_tests_1
-    dependsOn: pod_deployment
+    dependsOn: validate_state
     displayName: "Connectivity Tests"
     jobs:
       - job: cni_tests_1
