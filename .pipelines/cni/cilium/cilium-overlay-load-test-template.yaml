@@ -79,8 +79,42 @@ stages:
           - template: ../load-test-templates/validate-state-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}
+  - stage: connectivity_tests_1
+    dependsOn: pod_deployment
+    displayName: "Connectivity Tests"
+    jobs:
+      - job: cni_tests_1
+        steps:
+          - script: |
+              echo "install cilium CLI"
+              CILIUM_CLI_VERSION=v0.13.2
+              CLI_ARCH=amd64
+              curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+              sha256sum --check cilium-linux-${CLI_ARCH}.tar.gz.sha256sum
+              sudo tar xzvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
+              rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+            name: "InstallCiliumCli1"
+            displayName: "Install Cilium CLI"
+          - task: AzureCLI@1
+            inputs:
+              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+              scriptLocation: "inlineScript"
+              scriptType: "bash"
+              addSpnToEnvironment: true
+              inlineScript: |
+                set -ex
+                make -C ./hack/swift set-kubeconf AZCLI=az CLUSTER=$(CLUSTER)
+            name: "GetCluster1"
+            displayName: "Get AKS Cluster"
+          - script: |
+              kubectl delete ns load-test
+              cilium connectivity test
+            retryCountOnTaskFailure: 6
+            name: "CiliumConnectivityTests1"
+            displayName: "Run Cilium Connectivity Tests"
+
   - stage: restart_nodes
-    dependsOn: validate_state
+    dependsOn: connectivity_tests_1
     displayName: "Restart Node"
     jobs:
       - job: restart_nodes

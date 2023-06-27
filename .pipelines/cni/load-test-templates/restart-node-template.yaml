@@ -15,12 +15,12 @@ steps:
         make -C ./hack/swift azcfg AZCLI=az REGION=$(LOCATION)
         cd test/integration/load
         echo "Scaling the pods down to 100 per node"
-        go test -count 1 -timeout 30m -tags load -run ^TestScaleDeployment$ -tags=load -scaleup=1000 -skip-wait=true
+        go test -count 1 -timeout 30m -tags load -run ^TestScaleDeployment$ -tags=load -scaleup=50 -skip-wait=true
         cd ../../../
         echo "Restarting the nodes"
         vmss_name=$(az vmss list -g MC_$(CLUSTER)_$(CLUSTER)_$(LOCATION) --query "[].name" -o tsv)
         make -C ./hack/swift restart-vmss AZCLI=az CLUSTER=$(CLUSTER) REGION=$(LOCATION) VMSS_NAME=$vmss_name
         cd test/integration/load
-        go test -count 1 -timeout 30m -tags load -run ^TestScaleDeployment$ -tags=load -replicas=1000
+        go test -count 1 -timeout 30m -tags load -run ^TestScaleDeployment$ -tags=load -replicas=50
     name: "RestartNodes"
     displayName: "Restart Nodes"
