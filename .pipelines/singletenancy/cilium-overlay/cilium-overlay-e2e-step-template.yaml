@@ -3,10 +3,6 @@ parameters:
   testDropgz: ""
   clusterName: ""
 
-variables:
-  - name: "nightly"
-    value: "false"
-
 steps:
   - bash: |
       echo $UID
