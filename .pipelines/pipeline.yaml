@@ -331,9 +331,6 @@ stages:
       pipelineBuildImage: "$(BUILD_IMAGE)"
       testDropgz: ""
       clusterName: "overlaye2e"
-    variables:
-      name: "nightly"
-      value: "false"
 
   - template: singletenancy/aks-swift/e2e-job-template.yaml
     parameters:
