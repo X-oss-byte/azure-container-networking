@@ -5,6 +5,10 @@ parameters:
   testDropgz: ""
   clusterName: ""
 
+variables:
+  - name: "nightly"
+    value: "false"
+
 stages:
   - stage: ${{ parameters.name }}
     displayName: E2E - ${{ parameters.displayName }}
