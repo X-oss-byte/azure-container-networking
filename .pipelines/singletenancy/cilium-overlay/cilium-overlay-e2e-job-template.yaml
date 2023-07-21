@@ -24,7 +24,6 @@ stages:
           GOPATH: "$(Agent.TempDirectory)/go" # Go workspace path
           GOBIN: "$(GOPATH)/bin" # Go binaries path
           modulePath: "$(GOPATH)/src/github.com/Azure/azure-container-networking"
-          nightly: "false"
         steps:
           - template: cilium-overlay-e2e-step-template.yaml
             parameters:
