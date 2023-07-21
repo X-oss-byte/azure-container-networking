@@ -196,7 +196,7 @@ steps:
       fi 
     name: "CiliumIdentites"
     displayName: "Verify Cilium Identity Deletion"
-    condition: eq('installCilium.nightly', 'true')
+    condition: eq($(nightly), 'true')
 
   - script: |
       echo "validate pod IP assignment before CNS restart"

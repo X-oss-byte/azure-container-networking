@@ -6,6 +6,7 @@ metadata:
   labels:
     app: scale-test
     is-real: "true"
+    name: TEMP_NAME
 spec:
   replicas: TEMP_REPLICAS
   selector:
@@ -22,16 +23,8 @@ spec:
       nodeSelector:
         scale-test: "true"
       containers:
-      - command:
-        - /agnhost
-        - serve-hostname
-        - --tcp
-        - --http=false
-        - --port
-        - "80"
-        image: k8s.gcr.io/e2e-test-images/agnhost:2.33
-        imagePullPolicy: IfNotPresent
-        name: cont-80-tcp
+      - name: nginx
+        image: nginx:1
         ports:
-        - containerPort: 80
-          protocol: TCP
+        - name: http
+          containerPort: 80
