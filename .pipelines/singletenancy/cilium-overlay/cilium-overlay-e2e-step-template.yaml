@@ -49,6 +49,7 @@ steps:
         FILE_PATH=-nightly 
         echo "Running nightly"
         echo "##vso[task.setvariable variable=nightly;isOutput=true]true" #set variable nightly to true
+        echo $(nightly)
       fi
       echo "deploy Cilium ConfigMap"
       kubectl apply -f cilium/configmap.yaml      
@@ -196,7 +197,7 @@ steps:
       fi 
     name: "CiliumIdentites"
     displayName: "Verify Cilium Identity Deletion"
-    condition: eq($(nightly), 'true')
+    condition: eq(variables['nightly'], 'true')
 
   - script: |
       echo "validate pod IP assignment before CNS restart"
