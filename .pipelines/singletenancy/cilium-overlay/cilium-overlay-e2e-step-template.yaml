@@ -170,8 +170,7 @@ steps:
     displayName: "Validate Pods"
 
   - script: |
-      if [ "$CILIUM_VERSION_TAG" = "cilium-nightly-pipeline" ] 
-      then 
+      if [ "$CILIUM_VERSION_TAG" = "cilium-nightly-pipeline" ]; then 
         kubectl get pod -owide -n cilium-test
         echo "wait for pod and cilium identity deletion"
         ns="cilium-test"
@@ -186,15 +185,14 @@ steps:
         sleep 20s
         echo "Verify cilium identities are deleted"
         checkIdentity="$(kubectl get ciliumidentity -o json | grep cilium-test | jq -e 'length == 0')"
-        if [[ -n $checkIdentity ]]
-        then
+        if [[ -n $checkIdentity ]]; then
           echo "##[error]Cilium Identities still present"
         else
           printf -- "Identities deleted\n"
         fi 
-    else
-      echo "skip cilium identities check for PR pipeline"
-    fi
+      else
+        echo "skip cilium identities check for PR pipeline"
+      fi
     name: "CiliumIdentites"
     displayName: "Verify Cilium Identity Deletion"
 
