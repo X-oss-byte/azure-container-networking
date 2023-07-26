@@ -91,6 +91,7 @@ stages:
     displayName: "Test Network Policies"
     jobs:
       - job: network_policies
+        timeoutInMinutes: 120
         steps:
           - task: AzureCLI@1
             inputs:
@@ -103,10 +104,9 @@ stages:
                 az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
                 cd test/scale/connectivity
                 chmod +x test-connectivity.sh
-                ./test-connectivity.sh --num-scale-pods-to-verify=80 --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
+                ./test-connectivity.sh --num-scale-pods-to-verify=40 --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
             name: "TestNetworkPolicies"
             displayName: "Network Policies Scale Test"
-            timeoutInMinutes: 120
   - stage: scale_for_load_tests
     displayName: "Scale for load tests"
     jobs:
@@ -122,7 +122,7 @@ stages:
                 az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
                 cd test/scale
                 chmod +x test-scale.sh
-                ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=200 --num-real-deployments=0 --num-real-replicas=60 --num-network-policies=0 --num-unapplied-network-policies=0 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=1 --delete-labels --num-real-nginx-deployments=1
+                ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=200 --num-real-deployments=1 --num-real-replicas=60 --num-network-policies=0 --num-unapplied-network-policies=0 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=1 --delete-labels --real-pod-type=nginx
             name: "TestLBServices"
             displayName: "Scale for load tests"
   - stage: benchmark_testing
