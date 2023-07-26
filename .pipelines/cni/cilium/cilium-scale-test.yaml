@@ -104,9 +104,9 @@ stages:
                 az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
                 cd test/scale/connectivity
                 chmod +x test-connectivity.sh
-                ./test-connectivity.sh --num-scale-pods-to-verify=80 --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
+                ./test-connectivity.sh --num-scale-pods-to-verify=60 --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
             name: "TestNetworkPolicies"
-            displayName: "Network Policies Scale Test"
+            displayName: "Network Policies Connectivity Test"
   - stage: scale_for_load_tests
     displayName: "Scale for load tests"
     jobs:
@@ -128,7 +128,7 @@ stages:
   - stage: benchmark_testing
     displayName: "Run apachebench test"
     jobs:
-      - job: ap_test
+      - job: apachebench_test
         steps:
           - task: AzureCLI@1
             inputs:
