@@ -104,7 +104,7 @@ stages:
                 az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
                 cd test/scale/connectivity
                 chmod +x test-connectivity.sh
-                ./test-connectivity.sh --num-scale-pods-to-verify=40 --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
+                ./test-connectivity.sh --num-scale-pods-to-verify=80 --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
             name: "TestNetworkPolicies"
             displayName: "Network Policies Scale Test"
   - stage: scale_for_load_tests
