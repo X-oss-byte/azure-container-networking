@@ -6,6 +6,8 @@ stages:
     displayName: "Update Cilium Version and Restart Nodes"
     jobs:
       - job: update_version
+        pool:
+          name: "$(BUILD_POOL_ACN)"
         steps:
           - task: AzureCLI@1
             inputs:
@@ -34,6 +36,8 @@ stages:
     displayName: "Scale Up Cluster"
     jobs:
       - job: scale_up1000
+        pool:
+          name: "$(BUILD_POOL_ACN)"
         steps:
           - task: AzureCLI@1
             inputs:
@@ -53,6 +57,8 @@ stages:
     displayName: "Label Nodes for Testing"
     jobs:
       - job: label_nodes
+        pool:
+          name: "$(BUILD_POOL_ACN)"
         steps:
           - task: AzureCLI@1
             inputs:
@@ -72,6 +78,8 @@ stages:
     displayName: "Scale deploments for Network Policies Check"
     jobs:
       - job: scale_deployments
+        pool:
+          name: "$(BUILD_POOL_ACN)"
         steps:
           - task: AzureCLI@1
             inputs:
@@ -91,6 +99,8 @@ stages:
     displayName: "Test Network Policies"
     jobs:
       - job: network_policies
+        pool:
+          name: "$(BUILD_POOL_ACN)"
         timeoutInMinutes: 120
         steps:
           - task: AzureCLI@1
@@ -111,6 +121,8 @@ stages:
     displayName: "Scale for load tests"
     jobs:
       - job: deploy_service
+        pool:
+          name: "$(BUILD_POOL_ACN)"
         steps:
           - task: AzureCLI@1
             inputs:
@@ -129,6 +141,8 @@ stages:
     displayName: "Run apachebench test"
     jobs:
       - job: apachebench_test
+        pool:
+          name: "$(BUILD_POOL_ACN)"
         steps:
           - task: AzureCLI@1
             inputs:
@@ -172,6 +186,8 @@ stages:
     displayName: "Scale Down Cluster"
     jobs:
       - job: scale_down
+        pool:
+          name: "$(BUILD_POOL_ACN)"
         steps:
           - task: AzureCLI@1
             inputs:
@@ -193,6 +209,8 @@ stages:
     displayName: "Delete Test Namespaces"
     jobs:
       - job: delete_namespaces
+        pool:
+          name: "$(BUILD_POOL_ACN)"
         steps:
         - task: AzureCLI@1
           inputs:
