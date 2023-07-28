@@ -35,7 +35,7 @@ stages:
   - stage: scale_up_cluster
     displayName: "Scale Up Cluster"
     jobs:
-      - job: scale_up1000
+      - job: scale_up
         pool:
           name: "$(BUILD_POOL_NAME_DEFAULT)"
         steps:
@@ -160,7 +160,7 @@ stages:
                 mkdir results
                 cd results
                 AB_POD=$(kubectl get pod -l app=apachebench | grep apachebench | awk '{print $1}')
-                kubectl exec -it $AB_POD -- ab -n ${AB_REQUESTS} -c ${AB_CONCURRENCY} -r http://real-svc-00001.scale-test/ >> "ab_${AB_REQUESTS}krequests_${NUM_REAL_REPLICAS_LB}kpods.log"
+                kubectl exec -it $AB_POD -- ab -n ${AB_REQUESTS} -c ${AB_CONCURRENCY} -r http://real-svc-00001.scale-test/ >> "ab_${AB_REQUESTS}requests_${NUM_REAL_REPLICAS_LB}kpods.log"
                 echo "running k top node" 
                 kubectl top node >> "node_cpu_and_mem.log"
                 echo "running k top pod"
@@ -217,10 +217,12 @@ stages:
             scriptType: "bash"
             addSpnToEnvironment: true
             inlineScript: |
-              echo "delete namespaces scale-test and connectivity-test"
+              echo "delete test resources and namespaces"
               az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
               kubectl delete ns scale-test
               kubectl delete ns connectivity-test
               kubectl get ns
+              cd hack/manifests
+              kubectl delete -f apache.yaml
           name: "DeleteTestNamespaces"
           displayName: "Delete Test Namespaces"
