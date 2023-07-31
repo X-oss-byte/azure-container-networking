@@ -155,7 +155,7 @@ stages:
                 cd hack/manifests
                 kubectl apply -f apache.yaml
                 echo "wait for pod to become ready"
-                sleep 5s
+                kubectl rollout status deployment apachebench --timeout=30s
                 kubectl get pod -owide
                 mkdir results
                 cd results
