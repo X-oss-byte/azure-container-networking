@@ -115,7 +115,7 @@ stages:
           - task: PublishBuildArtifacts@1
             inputs:
               artifactName: before_netpol_cpu_and_mem
-              pathtoPublish: "$(Build.ArtifactStagingDirectory)/results"
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/before_netpol_cpu_and_mem"
             condition: always()
             name: "PublishResults"
             displayName: "Result Artifacts"
