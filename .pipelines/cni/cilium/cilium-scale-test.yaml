@@ -233,6 +233,7 @@ stages:
                 echo "collect cpu and memory usage after apachebench tests"
                 cd ..
                 mkdir after_lb_cpu_and_mem
+                cd after_lb_cpu_and_mem
                 echo "running k top node" 
                 kubectl top node >> "node_after_lb_tests.log"
                 echo "running k top pod"
