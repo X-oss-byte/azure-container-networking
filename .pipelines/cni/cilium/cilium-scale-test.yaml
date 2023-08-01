@@ -87,8 +87,18 @@ stages:
               scriptType: "bash"
               addSpnToEnvironment: true
               inlineScript: |
-                echo "scale deployment and to prep for network policies test"
                 az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                echo "collect cpu and memory usage before scaling for network policies"
+                mkdir results
+                cd results
+                mkdir cpu_and_mem
+                cd cpu_and_mem
+                echo "running k top node" 
+                kubectl top node >> "node_before_netpol_scale.log"
+                echo "running k top pod"
+                kubectl top pod -A | grep cilium >> "pod_before_netpol_scale.log"
+                cd ../..
+                echo "scale deployment and to prep for network policies test"
                 cd test/scale
                 chmod +x test-scale.sh
                 ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=${REAL_PODS_PER_NODE_NETPOL} --num-real-deployments=${NUM_REAL_DEPLOYMENTS_NETPOL} --num-real-replicas=${NUM_REAL_REPLICAS_NETPOL} --num-network-policies=${APPLIED_NETPOL} --num-unapplied-network-policies=${UNAPPLIED_NETPOL} --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=${NUM_REAL_SVC_NETPOL} --delete-labels
@@ -114,6 +124,12 @@ stages:
                 cd test/scale/connectivity
                 chmod +x test-connectivity.sh
                 ./test-connectivity.sh --num-scale-pods-to-verify=${NUM_SCALE_PODS_TO_VERIFY} --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
+                echo "collect cpu and mem results after connectivity tests"
+                cd results/cpu_and_mem
+                echo "running k top node" 
+                kubectl top node >> "node_after_netpol_tests.log"
+                echo "running k top pod"
+                kubectl top pod -A | grep cilium >> "pod_after_netpol_tests.log"
             name: "TestNetworkPolicies"
             displayName: "Network Policies Connectivity Test"
   - stage: scale_for_load_tests
@@ -131,6 +147,13 @@ stages:
               addSpnToEnvironment: true
               inlineScript: |
                 az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                echo "collect cpu and mem results before scale for lb tests"
+                cd results/cpu_and_mem
+                echo "running k top node" 
+                kubectl top node >> "node_before_lb_scale.log"
+                echo "running k top pod"
+                kubectl top pod -A | grep cilium >> "pod_before_lb_scale.log"
+                cd ../..
                 cd test/scale
                 chmod +x test-scale.sh
                 ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=${REAL_PODS_PER_NODE_LB} --num-real-deployments=${NUM_REAL_DEPLOYMENTS_LB} --num-real-replicas=${NUM_REAL_REPLICAS_LB} --num-network-policies=0 --num-unapplied-network-policies=0 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=${NUM_REAL_SVC_LB} --delete-labels --real-pod-type=nginx
@@ -157,14 +180,16 @@ stages:
                 echo "wait for pod to become ready"
                 kubectl rollout status deployment apachebench --timeout=30s
                 kubectl get pod -owide
-                mkdir results
                 cd results
                 AB_POD=$(kubectl get pod -l app=apachebench | grep apachebench | awk '{print $1}')
                 kubectl exec -it $AB_POD -- ab -n ${AB_REQUESTS} -c ${AB_CONCURRENCY} -r http://real-svc-00001.scale-test/ >> "ab_${AB_REQUESTS}requests_${NUM_REAL_REPLICAS_LB}kpods.log"
+                echo "collect cpu and memory usage after apachebench tests"
+                cd cpu_and_mem
                 echo "running k top node" 
-                kubectl top node >> "node_cpu_and_mem.log"
+                kubectl top node >> "node_after_lb_tests.log"
                 echo "running k top pod"
-                kubectl top pod -A | grep cilium >> "pod_cpu_and_mem.log"
+                kubectl top pod -A | grep cilium >> "pod_after_lb_tests.log"
+                cd ..
                 echo "Logs will be available as a build artifact"
                 ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/results/
                 echo $ARTIFACT_DIR
