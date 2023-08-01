@@ -263,7 +263,7 @@ stages:
               artifactName: after_lb_cpu_and_mem
               pathtoPublish: "$(Build.ArtifactStagingDirectory)/after_lb_cpu_and_mem"
             condition: always()
-            name: "PublishResults"
+            name: "PublishResults2"
             displayName: "Result Artifacts"
   - stage: scale_down_cluster
     displayName: "Scale Down Cluster"
