@@ -247,7 +247,6 @@ stages:
                 sudo rm -rf $ARTIFACT_DIR $ARTIFACT_DIR2
                 sudo mkdir $ARTIFACT_DIR
                 sudo mkdir $ARTIFACT_DIR2
-                cd ..
                 sudo cp ./apachebench/* $ARTIFACT_DIR
                 sudo cp ./after_lb_cpu_and_mem/* $ARTIFACT_DIR2
             name: "TestLBServices"
