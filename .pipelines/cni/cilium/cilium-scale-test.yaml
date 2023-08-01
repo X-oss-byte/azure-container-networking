@@ -115,12 +115,12 @@ stages:
             name: "scaling"
             displayName: "Run scale script"
           - task: PublishBuildArtifacts@1
-              inputs:
-                artifactName: before_netpol_cpu_and_mem
-                pathtoPublish: "$(Build.ArtifactStagingDirectory)/results"
-              condition: always()
-              name: "PublishResults"
-              displayName: "Result Artifacts"
+            inputs:
+              artifactName: before_netpol_cpu_and_mem
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/results"
+            condition: always()
+            name: "PublishResults"
+            displayName: "Result Artifacts"
   - stage: test_network_policies_connectivity
     displayName: "Test Network Policies"
     jobs:
@@ -158,12 +158,12 @@ stages:
             name: "TestNetworkPolicies"
             displayName: "Network Policies Connectivity Test"
           - task: PublishBuildArtifacts@1
-              inputs:
-                artifactName: after_netpol_cpu_and_mem
-                pathtoPublish: "$(Build.ArtifactStagingDirectory)/after_netpol_cpu_and_mem"
-              condition: always()
-              name: "PublishResults"
-              displayName: "Result Artifacts"
+            inputs:
+              artifactName: after_netpol_cpu_and_mem
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/after_netpol_cpu_and_mem"
+            condition: always()
+            name: "PublishResults"
+            displayName: "Result Artifacts"
   - stage: scale_for_load_tests
     displayName: "Scale for load tests"
     jobs:
@@ -199,12 +199,12 @@ stages:
             name: "TestLBServices"
             displayName: "Scale for load tests"
           - task: PublishBuildArtifacts@1
-              inputs:
-                artifactName: before_lb_cpu_and_mem
-                pathtoPublish: "$(Build.ArtifactStagingDirectory)/before_lb_cpu_and_mem"
-              condition: always()
-              name: "PublishResults"
-              displayName: "Result Artifacts"
+            inputs:
+              artifactName: before_lb_cpu_and_mem
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/before_lb_cpu_and_mem"
+            condition: always()
+            name: "PublishResults"
+            displayName: "Result Artifacts"
   - stage: benchmark_testing
     displayName: "Run apachebench test"
     jobs:
