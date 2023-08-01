@@ -26,12 +26,10 @@ stages:
                 envsubst '${CILIUM_VERSION_TAG},${CILIUM_IMAGE_REGISTRY}' < test/integration/manifests/cilium/deployment.yaml | kubectl apply -f -
                 kubectl apply -f test/integration/manifests/cilium/cilium-agent
                 kubectl apply -f test/integration/manifests/cilium/cilium-operator
-                echo "Checking CNS version is up to date. Update if version is old."
+                echo "Keep CNS version up to date, grabbing pipeline parameter"
                 CNS_IMAGE=${CNS_IMAGE}
-                if [[ grep -q -e -A2 'containers:' test/integration/manifests/cns/daemonset.yaml | tail -n1 | awk '{ print $2 }' -ne $CNS_IMAGE ]]; then
-                  sed -i '/containers:/{n;n;s/\(image\).*/\1: '"${CNS_IMAGE//\//\\/}"'/}' test/integration/manifests/cns/daemonset.yaml 
-                  kubectl apply -f test/integration/manifests/cns/daemonset.yaml 
-                fi
+                sed -i '/containers:/{n;n;s/\(image\).*/\1: '"${CNS_IMAGE//\//\\/}"'/}' test/integration/manifests/cns/daemonset.yaml 
+                kubectl apply -f test/integration/manifests/cns/daemonset.yaml 
                 vmss_name=$(az vmss list -g MC_${CLUSTER}_${CLUSTER}_$(LOCATION) --query "[].name" -o tsv)
                 make -C ./hack/aks restart-vmss AZCLI=az CLUSTER=${CLUSTER} REGION=$(LOCATION) VMSS_NAME=$vmss_name
                 kubectl get node 
