@@ -278,6 +278,7 @@ stages:
               addSpnToEnvironment: true
               inlineScript: |
                 az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                chmod +x hack/scripts/netperf.sh
                 mkdir netperf
                 cd netperf
                 kubectl apply -f test/integration/manifests/netperf-pod.yaml
@@ -299,7 +300,7 @@ stages:
                 cd ..
                 sudo cp ./netperf_cpu_and_mem/* $ARTIFACT_DIR
             name: "TestLBServices"
-            displayName: "Scale for load tests"
+            displayName: "Run Netperf tests"
           - task: PublishBuildArtifacts@1
             inputs:
               artifactName: before_lb_cpu_and_mem
