@@ -279,12 +279,10 @@ stages:
               inlineScript: |
                 az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
                 chmod +x hack/scripts/netperf.sh
-                kubectl apply -f test/integration/manifests/netperf-pod.yaml
+                kubectl apply -f hack/manifests/netperf-pod.yaml
                 kubectl rollout status deployment container6 --timeout=30s
                 mkdir netperf
-                cd netperf
                 sh hack/scripts/netperf.sh
-                cd ..
                 echo "collect cpu and mem results after netperf tests"
                 mkdir netperf_cpu_and_mem
                 cd netperf_cpu_and_mem
