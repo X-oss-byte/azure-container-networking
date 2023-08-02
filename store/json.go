@@ -23,7 +23,7 @@ const (
 	LockExtension = ".lock"
 
 	// DefaultLockTimeout - lock timeout in milliseconds
-	DefaultLockTimeout        = 10000 * time.Millisecond
+	DefaultLockTimeout        = 30000 * time.Millisecond
 	DefaultLockTimeoutWindows = 60000 * time.Millisecond
 )
 
