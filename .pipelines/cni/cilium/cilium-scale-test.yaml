@@ -292,11 +292,16 @@ stages:
                 kubectl top pod -A | grep cilium >> "pod_netperf.log"
                 echo "Logs will be available as a build artifact"
                 ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/netperf_cpu_and_mem/
+                ARTIFACT_DIR2=$(Build.ArtifactStagingDirectory)/netperf/
                 echo $ARTIFACT_DIR
+                echo $ARTIFACT_DIR2
                 sudo rm -rf $ARTIFACT_DIR 
+                sudo rm -rf $ARTIFACT_DIR2 
                 sudo mkdir $ARTIFACT_DIR
+                sudo mkdir $ARTIFACT_DIR2
                 cd ..
                 sudo cp ./netperf_cpu_and_mem/* $ARTIFACT_DIR
+                sudo cp ./netperf/* $ARTIFACT_DIR2
             name: "TestLBServices"
             displayName: "Run Netperf tests"
           - task: PublishBuildArtifacts@1
@@ -305,6 +310,13 @@ stages:
               pathtoPublish: "$(Build.ArtifactStagingDirectory)/netperf_cpu_and_mem"
             condition: always()
             name: "PublishResults"
+            displayName: "Netperf Result Artifacts"
+          - task: PublishBuildArtifacts@1
+            inputs:
+              artifactName: before_lb_cpu_and_mem
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/netperf"
+            condition: always()
+            name: "PublishNetperf"
             displayName: "Netperf Result Artifacts"
   - stage: scale_down_cluster
     displayName: "Scale Down Cluster"
