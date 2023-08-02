@@ -1,9 +1,8 @@
 #!/bin/bash
-
-netperf_pod=$(kubectl get pods -l app=container6 -o wide)
-target_pod=$(echo $netperf_pod | cut -d" " -f 1)
+netperf_pod=$(kubectl get pods -l app=container6 -o wide | awk '{print $1}')
+target_pod=$(echo $netperf_pod | cut -f 2 -d ' ')
 target_pod_ip=$(kubectl get pod "$target_pod" -o jsonpath='{.status.podIP}')
-diff_vm_pod=$netperf_pod
+diff_vm_pod=$(echo $netperf_pod | cut -f 3 -d ' ')
 kubectl exec -it $target_pod -- netserver
 
 #netperf on different vm pod
