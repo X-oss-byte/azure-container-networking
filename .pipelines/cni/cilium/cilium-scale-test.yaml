@@ -302,7 +302,7 @@ stages:
                 cd ..
                 sudo cp ./netperf_cpu_and_mem/* $ARTIFACT_DIR
                 sudo cp ./netperf/* $ARTIFACT_DIR2
-            name: "TestLBServices"
+            name: "NetperfIterations"
             displayName: "Run Netperf tests"
           - task: PublishBuildArtifacts@1
             inputs:
@@ -310,10 +310,10 @@ stages:
               pathtoPublish: "$(Build.ArtifactStagingDirectory)/netperf_cpu_and_mem"
             condition: always()
             name: "PublishResults"
-            displayName: "Netperf Result Artifacts"
+            displayName: "Netperf cpu and mem Artifacts"
           - task: PublishBuildArtifacts@1
             inputs:
-              artifactName: before_lb_cpu_and_mem
+              artifactName: netperf
               pathtoPublish: "$(Build.ArtifactStagingDirectory)/netperf"
             condition: always()
             name: "PublishNetperf"
