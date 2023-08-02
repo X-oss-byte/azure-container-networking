@@ -263,6 +263,50 @@ stages:
             condition: always()
             name: "PublishResults2"
             displayName: "Result Artifacts"
+  - stage: netperf_tests
+    displayName: "Run netperf tests"
+    jobs:
+      - job: netperf
+        pool:
+          name: "$(BUILD_POOL_NAME_DEFAULT)"
+        steps:
+          - task: AzureCLI@1
+            inputs:
+              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+              scriptLocation: "inlineScript"
+              scriptType: "bash"
+              addSpnToEnvironment: true
+              inlineScript: |
+                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                mkdir netperf
+                cd netperf
+                kubectl apply -f test/integration/manifests/netperf-pod.yaml
+                kubectl rollout status deployment container6 --timeout=30s
+                sh hack/scripts/netperf.sh
+                cd ..
+                echo "collect cpu and mem results after netperf tests"
+                mkdir netperf_cpu_and_mem
+                cd netperf_cpu_and_mem
+                echo "running k top node" 
+                kubectl top node >> "node_netperf.log"
+                echo "running k top pod"
+                kubectl top pod -A | grep cilium >> "pod_netperf.log"
+                echo "Logs will be available as a build artifact"
+                ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/netperf_cpu_and_mem/
+                echo $ARTIFACT_DIR
+                sudo rm -rf $ARTIFACT_DIR 
+                sudo mkdir $ARTIFACT_DIR
+                cd ..
+                sudo cp ./netperf_cpu_and_mem/* $ARTIFACT_DIR
+            name: "TestLBServices"
+            displayName: "Scale for load tests"
+          - task: PublishBuildArtifacts@1
+            inputs:
+              artifactName: before_lb_cpu_and_mem
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/netperf_cpu_and_mem"
+            condition: always()
+            name: "PublishResults"
+            displayName: "Netperf Result Artifacts"
   - stage: scale_down_cluster
     displayName: "Scale Down Cluster"
     jobs:
@@ -306,5 +350,6 @@ stages:
               kubectl get ns
               cd hack/manifests
               kubectl delete -f apache.yaml
+              kubectl delete -f netperf-pod.yaml
           name: "DeleteTestNamespaces"
           displayName: "Delete Test Namespaces"
