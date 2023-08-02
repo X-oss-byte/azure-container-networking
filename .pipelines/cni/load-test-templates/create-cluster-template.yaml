@@ -4,6 +4,7 @@ parameters:
   nodeCount: ""
   vmSize: ""
   windowsVMSize: ""
+  region: ""
 
 steps:
   - task: AzureCLI@1
@@ -14,7 +15,7 @@ steps:
       addSpnToEnvironment: true
       inlineScript: |
         set -ex
-        make -C ./hack/aks azcfg AZCLI=az REGION=$(LOCATION)
-        make -C ./hack/aks ${{ parameters.clusterType }} AZCLI=az REGION=$(LOCATION) SUB=$(SUBSCRIPTION_ID) CLUSTER=${{ parameters.clusterName }}-$(make revision) NODE_COUNT=${{ parameters.nodeCount }} VM_SIZE=${{ parameters.vmSize }} WINDOWS_VM_SKU=${{ parameters.windowsVMSize }} WINDOWS_USERNAME=${WINDOWS_USERNAME} WINDOWS_PASSWORD=${WINDOWS_PASSWORD}
+        make -C ./hack/aks azcfg AZCLI=az REGION=${{ parameters.region }}
+        make -C ./hack/aks ${{ parameters.clusterType }} AZCLI=az REGION=${{ parameters.region }} SUB=$(SUBSCRIPTION_ID) CLUSTER=${{ parameters.clusterName }}-$(make revision) NODE_COUNT=${{ parameters.nodeCount }} VM_SIZE=${{ parameters.vmSize }} WINDOWS_VM_SKU=${{ parameters.windowsVMSize }} WINDOWS_USERNAME=${WINDOWS_USERNAME} WINDOWS_PASSWORD=${WINDOWS_PASSWORD}
     name: "CreateAksCluster"
     displayName: "Create AKS Cluster"

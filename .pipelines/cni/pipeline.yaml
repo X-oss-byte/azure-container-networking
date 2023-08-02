@@ -25,6 +25,7 @@ stages:
       nodeCount: ${LINUX_NODE_COUNT}
       vmSize: "Standard_DS4_v2"
       dependsOn: setup
+
   - template: singletenancy/windows-cni-load-test-template.yaml
     parameters:
       name: win_cniv1
@@ -36,3 +37,16 @@ stages:
       windowsVMSize: ${WINDOWS_VM_SKU}
       os: windows
       cni: cniv1
+
+#change template filepath once I have decided on the name.
+  - template: singletenancy/windows-cni-load-test-template.yaml
+    parameters:
+      name: win_cniv1
+      clusterType: "linux-cniv2-up"
+      clusterName: "linuxrpv2"
+      nodeCount: 2
+      vmSize: "Standard_B2s"
+      dependsOn: setup
+      windowsVMSize: ${WINDOWS_VM_SKU}
+      os: windows
+      cni: cniv2
