@@ -267,6 +267,7 @@ stages:
     displayName: "Run netperf tests"
     jobs:
       - job: netperf
+        timeoutInMinutes: 120
         pool:
           name: "$(BUILD_POOL_NAME_DEFAULT)"
         steps:
