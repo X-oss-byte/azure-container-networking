@@ -125,7 +125,7 @@ steps:
   - script: |
       echo "Run Service Conformance E2E"
       export PATH=${PATH}:/usr/local/bin/gsutil
-      KUBECONFIG=~/.kube/config kubetest2 noop \
+      KUBECONFIG=~/.kube/config kubetest2 noop --logtostderr=true \
         --test ginkgo -- \
         --focus-regex "Services.*\[Conformance\].*"
     name: "servicesConformance"
