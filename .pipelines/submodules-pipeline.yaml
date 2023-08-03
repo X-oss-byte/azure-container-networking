@@ -181,7 +181,7 @@ stages:
         variables:
           TAG: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.Tag'] ]
         pool:
-          name: "$(BUILD_POOL_NAME_LINUX_ARM64)"
+          name: "Networking-ContainerNetworking-linux-arm"
         strategy:
           matrix:
             cni_dropgz_linux_arm64:
