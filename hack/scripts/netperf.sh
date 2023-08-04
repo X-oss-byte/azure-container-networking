@@ -3,7 +3,7 @@
 node_found=0
 for node in $(kubectl get nodes -o name);
 do
-    if [ $node_found -lt 3 ]; then
+    if [ $node_found -lt 2 ]; then
         echo "Current : $node"
         node_name="${node##*/}"
         echo "checking whether the node has any netperf pods deployed to it"
