@@ -25,7 +25,6 @@ stages:
             name: "SetEnvVars"
             displayName: "Set Environment Variables"
             condition: always()
-  # Need to have each cluster created then we can go into job'd tests that calls each cluster
 
   - stage: build_images
     dependsOn: setup
@@ -62,38 +61,48 @@ stages:
       name: cilium
       clusterType: "overlay-no-kube-proxy-up"
       clusterName: "cilium-overlay"
-      nodeCount: ${LINUX_NODE_COUNT}
+      nodeCount: ${LINUX_NODE_COUNT} # Add to pipeline variables
       vmSize: "Standard_DS4_v2"
       dependsOn: setup
-      nodeCount: 10
 
   - template: singletenancy/windows-cni-load-test-template.yaml
     parameters:
       name: win_cniv1
       clusterType: "windows-cniv1-up"
       clusterName: "win-cniv1"
-      nodeCount: 2
+      nodeCount: ${WINDOWS_NODE_COUNT} # Add to pipeline variables
       vmSize: Standard_B2ms
       dependsOn: setup
       windowsVMSize: ${WINDOWS_VM_SKU}
-      os: windows
-      cni: cniv1
+      cni: cniv1 # Is this being used?
+
+  - template: singletenancy/linux-cniv2-template.yaml
+    parameters:
+      name: linux_podsubnet
+      clusterType: swift-byocni-up
+      clusterName: linux-cniv2-podsubnet
+      nodeCount: ${LINUX_NODE_COUNT} # Add to pipeline variables default to 2
+      vmSize: Standard_B2ms
+      dependsOn: setup
+      cni: cniv2 # Is this being used?
 
 #change template filepath once I have decided on the name.
-  - template: singletenancy/windows-cni-load-test-template.yaml
+  - template: singletenancy/linux-cniv2-template.yaml
     parameters:
-      name: win_cniv1
-      clusterType: "linux-cniv2-up"
-      clusterName: "linuxrpv2"
-      nodeCount: 2
-      vmSize: "Standard_B2s"
+      name: linux_overlay
+      clusterType: overlay-byocni-up
+      clusterName: linux-cniv2-overlay
+      nodeCount: ${LINUX_NODE_COUNT}  # Add to pipeline variables
+      vmSize: Standard_B2ms
       dependsOn: setup
-      windowsVMSize: ${WINDOWS_VM_SKU}
-      os: windows
-      cni: cniv2
+      cni: cniv2 # Is this being used?
 
+
+## TODO match dependsOn and ClusterName
   - stage: delete_resources
     displayName: "Delete Resources"
+    pool:
+      name: "$(BUILD_POOL_NAME_DEFAULT)"
     dependsOn:
       - win_cniv1
       - cilium
@@ -101,7 +110,18 @@ stages:
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
     jobs:
-      - job: delete_resources
+      - job: delete
+        displayName: Delete Cluster
+        pool:
+          name: "$(BUILD_POOL_NAME_DEFAULT)"
+        strategy:
+          matrix:
+            win_cniv1:
+              name: cilium_e2e
+              clusterName: 'ciliume2e'
+            cilium:
+              name: cilium_overlay_cilium_e2e
+              clusterName: 'overlaye2e'
         steps:
           - task: AzureCLI@1
             inputs:
@@ -114,13 +134,13 @@ stages:
                 if [ "$(DELETE_RESOURCES)" ]
                 then
                   echo "Deleting Cluster and resource group"
-                  make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(commitID)
+                  make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=$(clusterName)-$(commitID)
                   make -C ./hack/aks azcfg AZCLI=az REGION=$(LOCATION)
-                  make -C ./hack/aks down AZCLI=az REGION=$(LOCATION) SUB=$(SUBSCRIPTION_ID) CLUSTER=${{ parameters.clusterName }}-$(commitID)
+                  make -C ./hack/aks down AZCLI=az REGION=$(LOCATION) SUB=$(SUBSCRIPTION_ID) CLUSTER=$(clusterName)-$(commitID)
                   echo "Cluster and resources down"
                 else
                   echo "Deletion of resources is False"
                 fi
             name: "CleanUpCluster"
-            displayName: "Cleanup cluster"
+            displayName: "Cleanup cluster - $(name)"
     condition: always()

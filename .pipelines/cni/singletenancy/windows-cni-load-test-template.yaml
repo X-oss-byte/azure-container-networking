@@ -6,51 +6,31 @@ parameters:
   nodeCount: ""
   vmSize: ""
   windowsVMSize: ""
-  os: ""
+  os: windows
   cni: ""
 
 stages:
   - stage: createAKSclusterWindows
+    variables:
+      commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
     pool:
       name: $(BUILD_POOL_NAME_DEFAULT)
-    dependsOn: ${{ parameters.dependsOn }}
-    displayName: "Windows AKS Cluster ${{ parameters.cni }}"
+    dependsOn: ${{ parameters.dependsOn }} # Setup, will add manifest stage once distros are added
+    displayName: "Create Cluster - ${{ parameters.clusterName }}"
     jobs:
       - job: create_aks_cluster_with_${{ parameters.name }}
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
         steps:
           - template: ../load-test-templates/create-cluster-template.yaml
             parameters:
               clusterType: ${{ parameters.clusterType }}
-              clusterName: ${{ parameters.clusterName }}
+              clusterName: ${{ parameters.clusterName }}-$(commitID)
               nodeCount: ${{ parameters.nodeCount }}
               vmSize: ${{ parameters.vmSize }}
               windowsVMSize: ${{ parameters.windowsVMSize }}
-  # - stage: build_images
-  #   pool:
-  #     name: $(BUILD_POOL_NAME_DEFAULT)
-  #   dependsOn: ${{ parameters.dependsOn }}
-  #   displayName: "Build CNI Images"
-  #   jobs:
-  #     - job: build_cni_images
-  #       pool:
-  #         name: "$(BUILD_POOL_NAME_LINUX_AMD64)"
-  #       strategy:
-  #         matrix:
-  #           cni_dropgz_windows2022_amd64:
-  #             arch: amd64
-  #             name: cni-dropgz-test
-  #             os: windows
-  #             os_version: ltsc2022
-  #       steps:
-  #         - template: ../../containers/container-template.yaml
-  #           parameters:
-  #             arch: $(arch)
-  #             name: $(name)
-  #             os: $(os)
-  #             os_version: $(os_version)
+
   - stage:  ${{ parameters.name }}
+    variables:
+      commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
     pool:
       name: $(BUILD_POOL_NAME_DEFAULT)
     dependsOn: ${{ parameters.dependsOn }}
@@ -122,7 +102,7 @@ stages:
               addSpnToEnvironment: true
               inlineScript: |
                 set -ex
-                clusterName=${{ parameters.clusterName }}-$(make revision)
+                clusterName=${{ parameters.clusterName }}-$(commitID)
                 make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${clusterName}
                 make -C ./hack/aks azcfg AZCLI=az REGION=$(LOCATION)
                 dropgz_version=$(make cni-dropgz-version)
@@ -139,7 +119,7 @@ stages:
       - template: ../k8s-e2e/k8s-e2e-job-template.yaml
         parameters:
           sub: $(TEST_SUB_SERVICE_CONNECTION)
-          clusterName: ${{ parameters.clusterName }}
+          clusterName: ${{ parameters.clusterName }}-$(commitID)
           os: ${{ parameters.os }}
           dependsOn: update_cni
           datapath: true
@@ -153,7 +133,7 @@ stages:
         steps:
           - template: ../load-test-templates/pod-deployment-template.yaml
             parameters:
-              clusterName: ${{ parameters.clusterName }}
+              clusterName: ${{ parameters.clusterName }}-$(commitID)
               scaleup: ${WINDOWS_SCALEUP}
               os: ${{ parameters.os }}
               cni: ${{ parameters.cni }}
@@ -163,7 +143,7 @@ stages:
         steps:
           - template: ../load-test-templates/validate-state-template.yaml
             parameters:
-              clusterName: ${{ parameters.clusterName }}
+              clusterName: ${{ parameters.clusterName }}-$(commitID)
               os: ${{ parameters.os }}
               cni: ${{ parameters.cni }}
 
