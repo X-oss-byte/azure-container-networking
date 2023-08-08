@@ -8,6 +8,7 @@ parameters:
   windowsVMSize: ""
   os: windows
   cni: ""
+  arch: ""
 
 stages:
   - stage: createAKSclusterWindows
@@ -27,10 +28,12 @@ stages:
               nodeCount: ${{ parameters.nodeCount }}
               vmSize: ${{ parameters.vmSize }}
               windowsVMSize: ${{ parameters.windowsVMSize }}
+              region: $(LOCATION)
 
   - stage:  ${{ parameters.name }}
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
+      dropgzVersion: $[ stagedependencies.setup.env.outputs['SetEnvVars.dropgzVersion'] ]
     pool:
       name: $(BUILD_POOL_NAME_DEFAULT)
     dependsOn: ${{ parameters.dependsOn }}
@@ -81,6 +84,7 @@ stages:
     dependsOn:
       - createAKSclusterWindows
       - build_images
+      - setup
       - binaries
     displayName: "Update CNI on Cluster"
     jobs:
@@ -102,11 +106,9 @@ stages:
               addSpnToEnvironment: true
               inlineScript: |
                 set -ex
-                clusterName=${{ parameters.clusterName }}-$(commitID)
-                make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${clusterName}
+                make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(commitID)
                 make -C ./hack/aks azcfg AZCLI=az REGION=$(LOCATION)
-                dropgz_version=$(make cni-dropgz-version)
-                export DROP_GZ_URL=$( make cni-dropgz-test-image-name-and-tag OS=$(os) ARCH=$(arch) OS_VERSION=$(os_version) CNI_DROPGZ_VERSION=${dropgz_version})
+                export DROP_GZ_URL=$( make cni-dropgz-test-image-name-and-tag OS=${{ parameters.os }} ARCH=${{ parameters.arch }} CNI_DROPGZ_VERSION=$(dropgzVersion))
                 envsubst < ./test/integration/manifests/cni/cni-installer-v1-windows.yaml | kubectl apply -f -
             name: "UploadCNI"
             displayName: "Upload CNI"
@@ -116,20 +118,8 @@ stages:
               kubectl get pods -A
             name: "WaitForCNI"
             displayName: "Wait For CNI"
-      - template: ../k8s-e2e/k8s-e2e-job-template.yaml
-        parameters:
-          sub: $(TEST_SUB_SERVICE_CONNECTION)
-          clusterName: ${{ parameters.clusterName }}-$(commitID)
-          os: ${{ parameters.os }}
-          dependsOn: update_cni
-          datapath: true
-          dns: true
-          portforward: true
-          hybridWin: true
-          service: true
-          hostport: true
       - job: deploy_pods
-        dependsOn: cni_k8se2e
+        dependsOn: update_cni
         steps:
           - template: ../load-test-templates/pod-deployment-template.yaml
             parameters:
@@ -138,14 +128,23 @@ stages:
               os: ${{ parameters.os }}
               cni: ${{ parameters.cni }}
               iterations: ${WINDOWS_ITERATIONS}
-      - job: validate_state
-        dependsOn: deploy_pods
-        steps:
           - template: ../load-test-templates/validate-state-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               os: ${{ parameters.os }}
               cni: ${{ parameters.cni }}
+      - template: ../k8s-e2e/k8s-e2e-job-template.yaml
+        parameters:
+          sub: $(TEST_SUB_SERVICE_CONNECTION)
+          clusterName: ${{ parameters.clusterName }}-$(commitID)
+          os: ${{ parameters.os }}
+          dependsOn: deploy_pods
+          datapath: true
+          dns: true
+          portforward: true
+          hybridWin: true
+          service: true
+          hostport: true
 
   - stage: npm
     dependsOn:

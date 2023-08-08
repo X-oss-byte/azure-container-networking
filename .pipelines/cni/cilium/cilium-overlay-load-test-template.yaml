@@ -29,7 +29,7 @@ stages:
     dependsOn: createAKScluster
     pool:
       name: "$(BUILD_POOL_NAME_DEFAULT)"
-    displayName: "Cilium Load Test"
+    displayName: "Cilium Test"
     jobs:
       - job: deploy_cilium_components
         steps:
@@ -68,33 +68,30 @@ stages:
                 cd ../../../..
                 kubectl get po -owide -A
       - job: deploy_pods
+        displayName: "Scale Test"
+        dependsOn: deploy_cilium_components
         steps:
           - template: ../load-test-templates/pod-deployment-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               scaleup: 2400
               os: linux
-      - job: validate_state
-        dependsOn: deploy_pods
-        steps:
           - template: ../load-test-templates/validate-state-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
       - job: restart_nodes
-        dependsOn: validate_state
+        displayName: "Restart Nodes"
+        dependsOn: deploy_pods
         steps:
           - template: ../load-test-templates/restart-node-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
-      - job: validate_restart_state
-        dependsOn: restart_nodes
-        steps:
           - template: ../load-test-templates/validate-state-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               restartCase: "true"
       - job: cni_tests
-        dependsOn: validate_restart_state
+        dependsOn: restart_nodes
         steps:
           - script: |
               echo "install cilium CLI"

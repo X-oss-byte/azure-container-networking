@@ -22,6 +22,7 @@ stages:
               echo "##vso[task.setvariable variable=commitID;isOutput=true]$(make revision)"
               echo "##vso[task.setvariable variable=npmVersion;isOutput=true]$(make npm-version)"
               echo "##vso[task.setvariable variable=dropgzVersion;isOutput=true]$(make cni-dropgz-version)"
+              echo "##vso[task.setvariable variable=cnsVersion;isOutput=true]$(make cns-version)"
             name: "SetEnvVars"
             displayName: "Set Environment Variables"
             condition: always()
@@ -75,6 +76,7 @@ stages:
       dependsOn: setup
       windowsVMSize: ${WINDOWS_VM_SKU}
       cni: cniv1 # Is this being used?
+      arch: amd64
 
   - template: singletenancy/linux-cniv2-template.yaml
     parameters:
@@ -85,6 +87,7 @@ stages:
       vmSize: Standard_B2ms
       dependsOn: setup
       cni: cniv2 # Is this being used?
+      arch: amd64
 
 #change template filepath once I have decided on the name.
   - template: singletenancy/linux-cniv2-template.yaml
@@ -96,6 +99,7 @@ stages:
       vmSize: Standard_B2ms
       dependsOn: setup
       cni: cniv2 # Is this being used?
+      arch: amd64
 
 
 ## TODO match dependsOn and ClusterName
