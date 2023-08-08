@@ -5,9 +5,10 @@ parameters:
   clusterName: ""
   nodeCount: ""
   vmSize: ""
-  windowsVMSize: ""
   os: linux
   cni: ""
+  arch: ""
+  testDropgz: true
 
 stages:
   - stage: ${{ parameters.clusterName }}
@@ -31,59 +32,54 @@ stages:
   - stage:  ${{ parameters.name }}
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
+      dropgzVersion: $[ stagedependencies.setup.env.outputs['SetEnvVars.dropgzVersion'] ]
+      cnsVersion: $[ stagedependencies.setup.env.outputs['SetEnvVars.cnsVersion'] ]
     pool:
       name: $(BUILD_POOL_NAME_DEFAULT)
     dependsOn:
       - createAKSclusterWindows
       - build_images
-    displayName: "Update CNI on Cluster"
+      - setup
+    displayName: "Linux CNIv2 Test"
     jobs:
-      - job: update_cni
-        strategy:
-          matrix:
-          # Remove one for respective tests
-            linux_swift_amd64:
-              os: linux
-              arch: amd64
-            linux_overlay_amd64:
-              os: linux
-              arch: amd64
+      - job: integration
+        displayName: "Integration Test - ${{ parameters.name }}"
         steps:
-          - task: AzureCLI@1
-            inputs:
-              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
-              scriptLocation: "inlineScript"
-              scriptType: "bash"
-              addSpnToEnvironment: true
-              inlineScript: |
-                set -ex
-                clusterName=${{ parameters.clusterName }}-$(commitID)
-                make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${clusterName}
-                make -C ./hack/aks azcfg AZCLI=az REGION=$(LOCATION)
-                dropgz_version=$(make cni-dropgz-version)
-                export DROP_GZ_URL=$( make cni-dropgz-test-image-name-and-tag OS=$(os) ARCH=$(arch) OS_VERSION=$(os_version) CNI_DROPGZ_VERSION=${dropgz_version})
-                envsubst < ./test/integration/manifests/cni/cni-installer-v1-windows.yaml | kubectl apply -f -
-            name: "UploadCNI"
-            displayName: "Upload CNI"
-          - script: |
-              set -ex
-              kubectl rollout status daemonset/azure-cni-windows -n kube-system
-              kubectl get pods -A
-            name: "WaitForCNI"
-            displayName: "Wait For CNI"
-      - template: ../k8s-e2e/k8s-e2e-job-template.yaml
-        parameters:
-          sub: $(TEST_SUB_SERVICE_CONNECTION)
-          clusterName: ${{ parameters.clusterName }}-$(commitID)
-          os: ${{ parameters.os }}
-          dependsOn: update_cni
-          datapath: true
-          dns: true
-          portforward: true
-          service: true
-          hostport: true
+          - ${{ if contains(parameters.clusterType, overlay) }}:
+            - task: AzureCLI@1
+              inputs:
+                azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+                scriptLocation: "inlineScript"
+                scriptType: "bash"
+                addSpnToEnvironment: true
+                inlineScript: |
+                  echo "Start Integration Tests on Overlay Cluster"
+                  echo "deploy ip-masq-agent for overlay"
+                  kubectl apply -f test/integration/manifests/ip-masq-agent/ip-masq-agent.yaml --validate=false
+                  cd test/integration/manifests/ip-masq-agent/
+                  kubectl apply -f config-custom.yaml
+                  kubectl apply -f config-reconcile.yaml
+                  cd ../../../..
+                  kubectl get po -owide -A
+                  sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=$(cnsVersion) CNI_DROPGZ_VERSION=$(dropgzVersion) INSTALL_CNS=true INSTALL_AZURE_CNI_OVERLAY=true TEST_DROPGZ=${{ parameters.testDropgz }}
+              name: "overlaye2e"
+              displayName: "Overlay Integration"
+          - ${{ if contains(parameters.clusterType, swift) }}:
+            - task: AzureCLI@1
+              inputs:
+                azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+                scriptLocation: "inlineScript"
+                scriptType: "bash"
+                addSpnToEnvironment: true
+                inlineScript: |
+                  echo "Start Integration Tests on Swift Cluster"
+                  kubectl cluster-info
+                  kubectl get po -owide -A
+                  sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=$(cnsVersion) CNI_DROPGZ_VERSION=$(dropgzVersion) INSTALL_CNS=true INSTALL_AZURE_VNET=true TEST_DROPGZ=${{ parameters.testDropgz }}
+              name: "swifte2e"
+              displayName: "Swift Integration"
       - job: deploy_pods
-        dependsOn: cni_k8se2e
+        dependsOn: integration
         steps:
           - template: ../load-test-templates/pod-deployment-template.yaml
             parameters:
@@ -91,12 +87,30 @@ stages:
               scaleup: ${LINUX_SCALEUP} # Add to pipeline Variables
               os: ${{ parameters.os }}
               iterations: ${LINUX_ITERATIONS} # Add to pipeline Variables
-      - job: validate_state
-        dependsOn: deploy_pods
+          - template: ../load-test-templates/validate-state-template.yaml
+            parameters:
+              clusterName: ${{ parameters.clusterName }}-$(commitID)
+              os: ${{ parameters.os }}
+      - job: restart_nodes
+        dependsOn: validate_state
         steps:
+          - template: ../load-test-templates/restart-node-template.yaml
+            parameters:
+              clusterName: ${{ parameters.clusterName }}-$(commitID)
           - template: ../load-test-templates/validate-state-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               os: ${{ parameters.os }}
               restartCase: "true"
+      - template: ../k8s-e2e/k8s-e2e-job-template.yaml
+        parameters:
+          sub: $(TEST_SUB_SERVICE_CONNECTION)
+          clusterName: ${{ parameters.clusterName }}-$(commitID)
+          os: ${{ parameters.os }}
+          dependsOn: restart_nodes
+          datapath: true
+          dns: true
+          portforward: true
+          service: true
+          hostport: true
 
