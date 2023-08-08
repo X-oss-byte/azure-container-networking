@@ -1019,7 +1019,7 @@ func (service *HTTPRestService) UpdateEndpointHandler(w http.ResponseWriter, r *
 	response := cns.UpdateEndpointResponse{
 		Response: cns.Response{
 			ReturnCode: types.Success,
-			Message:    "[Azure CNS] updateEndpoint retruned successfully",
+			Message:    "[Azure CNS] updateEndpoint returned successfully",
 		},
 	}
 	err = service.Listener.Encode(w, &response)
