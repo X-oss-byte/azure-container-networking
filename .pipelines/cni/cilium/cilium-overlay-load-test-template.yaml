@@ -7,10 +7,11 @@ parameters:
   vmSize: "Standard_DS4_v2"
 
 stages:
-  - stage: createAKScluster
+  - stage: create_${{ parameters.name }}
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
-    dependsOn: ${{ parameters.dependsOn }}
+    dependsOn:
+      - setup
     displayName: "Create Cluster - ${{ parameters.clusterName }}"
     jobs:
       - job: create_aks_cluster_with_${{ parameters.name }}
@@ -26,10 +27,14 @@ stages:
               region: $(LOCATION)
 
   - stage: ${{ parameters.name }}
-    dependsOn: createAKScluster
+    variables:
+      commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
     pool:
       name: "$(BUILD_POOL_NAME_DEFAULT)"
-    displayName: "Cilium Test"
+    dependsOn:
+      - create_${{ parameters.name }}
+      - setup
+    displayName: "Cilium Test - ${{ parameters.name }}"
     jobs:
       - job: deploy_cilium_components
         steps:
@@ -74,13 +79,13 @@ stages:
           - template: ../load-test-templates/pod-deployment-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
-              scaleup: 2400
+              scaleup: 2400 # Do we want to parameterize this? ${CILIUM_SCALEUP}
               os: linux
           - template: ../load-test-templates/validate-state-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
       - job: restart_nodes
-        displayName: "Restart Nodes"
+        displayName: "Restart Test"
         dependsOn: deploy_pods
         steps:
           - template: ../load-test-templates/restart-node-template.yaml

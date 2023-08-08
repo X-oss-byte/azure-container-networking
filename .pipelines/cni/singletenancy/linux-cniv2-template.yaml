@@ -9,14 +9,21 @@ parameters:
   arch: ""
   testDropgz: true
 
+# + Should be able to scale up/down the pods successfully certain number of times.
+# + Node reboot scenarios should be covered.
+# + The CNS state should be validated with that of CNI state.
+# + Pods should have ips assigned and connectivity/datapath test should be present.
+# + CNS restart and validates the state
+
 stages:
-  - stage: ${{ parameters.clusterName }}
-    pool:
-      name: $(BUILD_POOL_NAME_DEFAULT)
-    dependsOn: ${{ parameters.dependsOn }} # Setup, will add manifest stage once distros are added
-    displayName: "Create Cluster - ${{ parameters.clusterName }}"
+  - stage: create_${{ parameters.name }}
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
+    pool:
+      name: $(BUILD_POOL_NAME_DEFAULT)
+    dependsOn:
+      - setup
+    displayName: "Create Cluster - ${{ parameters.clusterName }}"
     jobs:
       - job: create_aks_cluster_with_${{ parameters.name }}
         steps:
@@ -28,23 +35,24 @@ stages:
               vmSize: ${{ parameters.vmSize }}
               region: $(LOCATION)
 
-  - stage:  ${{ parameters.name }}
+  - stage: ${{ parameters.name }}
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
       dropgzVersion: $[ stagedependencies.setup.env.outputs['SetEnvVars.dropgzVersion'] ]
       cnsVersion: $[ stagedependencies.setup.env.outputs['SetEnvVars.cnsVersion'] ]
+      npmVersion: $[ stagedependencies.setup.env.outputs['SetEnvVars.npmVersion'] ]
     pool:
       name: $(BUILD_POOL_NAME_DEFAULT)
     dependsOn:
-      - createAKSclusterWindows
-      - build_images
+      - create_${{ parameters.name }}
+      - publish
       - setup
-    displayName: "Linux CNIv2 Test"
+    displayName: "CNIv2 Test - ${{ parameters.name }}"
     jobs:
       - job: integration
         displayName: "Integration Test - ${{ parameters.name }}"
         steps:
-          - ${{ if contains(parameters.clusterType, overlay) }}:
+          - ${{ if contains(parameters.clusterType, 'overlay') }}:
             - task: AzureCLI@1
               inputs:
                 azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
@@ -54,6 +62,7 @@ stages:
                 inlineScript: |
                   echo "Start Integration Tests on Overlay Cluster"
                   echo "deploy ip-masq-agent for overlay"
+                  make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(commitID)
                   kubectl apply -f test/integration/manifests/ip-masq-agent/ip-masq-agent.yaml --validate=false
                   cd test/integration/manifests/ip-masq-agent/
                   kubectl apply -f config-custom.yaml
@@ -63,7 +72,7 @@ stages:
                   sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=$(cnsVersion) CNI_DROPGZ_VERSION=$(dropgzVersion) INSTALL_CNS=true INSTALL_AZURE_CNI_OVERLAY=true TEST_DROPGZ=${{ parameters.testDropgz }}
               name: "overlaye2e"
               displayName: "Overlay Integration"
-          - ${{ if contains(parameters.clusterType, swift) }}:
+          - ${{ if contains(parameters.clusterType, 'swift') }}:
             - task: AzureCLI@1
               inputs:
                 azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
@@ -72,27 +81,30 @@ stages:
                 addSpnToEnvironment: true
                 inlineScript: |
                   echo "Start Integration Tests on Swift Cluster"
+                  make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(commitID)
                   kubectl cluster-info
                   kubectl get po -owide -A
                   sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=$(cnsVersion) CNI_DROPGZ_VERSION=$(dropgzVersion) INSTALL_CNS=true INSTALL_AZURE_VNET=true TEST_DROPGZ=${{ parameters.testDropgz }}
               name: "swifte2e"
               displayName: "Swift Integration"
       - job: deploy_pods
+        displayName: "Scale Test"
         dependsOn: integration
         steps:
           - template: ../load-test-templates/pod-deployment-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
-              scaleup: ${LINUX_SCALEUP} # Add to pipeline Variables
+              scaleup: ${LINUX_SCALEUP}
               os: ${{ parameters.os }}
-              iterations: ${LINUX_ITERATIONS} # Add to pipeline Variables
+              iterations: ${LINUX_ITERATIONS}
           - template: ../load-test-templates/validate-state-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               os: ${{ parameters.os }}
               cni: cniv2
       - job: restart_nodes
-        dependsOn: validate_state
+        displayName: "Restart Test"
+        dependsOn: deploy_pods
         steps:
           - template: ../load-test-templates/restart-node-template.yaml
             parameters:
@@ -106,7 +118,7 @@ stages:
       - template: ../k8s-e2e/k8s-e2e-job-template.yaml
         parameters:
           sub: $(TEST_SUB_SERVICE_CONNECTION)
-          clusterName: ${{ parameters.clusterName }}-$(commitID)
+          clusterName: ${{ parameters.clusterName }} # make revision will be removed once 2077 is merged, will need to add -$(commitID)
           os: ${{ parameters.os }}
           dependsOn: restart_nodes
           datapath: true
@@ -114,4 +126,11 @@ stages:
           portforward: true
           service: true
           hostport: true
+      - template: ../../npm/npm-cni-integration-test.yaml
+        parameters:
+          clusterName: ${{ parameters.clusterName }}-$(commitID)
+          os: ${{ parameters.os }}
+          sub: $(TEST_SUB_SERVICE_CONNECTION)
+          tag: $(npmVersion)
+          dependsOn: cni_k8se2e
 
