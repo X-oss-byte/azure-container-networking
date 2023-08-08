@@ -1,14 +1,13 @@
 parameters:
   dependsOn: ""
-  name: "cilium"
-  clusterType: "overlay-no-kube-proxy-up"
-  clusterName: "cilium-overlay"
-  nodeCount: 10
-  vmSize: "Standard_DS4_v2"
+  name: ""
+  clusterType: ""
+  clusterName: ""
+  nodeCount: ""
+  vmSize: ""
 
 
 stages:
-
   - stage: createAKScluster
     dependsOn: ${{ parameters.dependsOn }}
     displayName: "AKS Cluster with Cilium"
@@ -23,13 +22,13 @@ stages:
               clusterName: ${{ parameters.clusterName }}
               nodeCount: ${{ parameters.nodeCount }}
               vmSize: ${{ parameters.vmSize }}
-  - stage: install_cilium
+  - stage: ${{ parameters.name }}
     dependsOn: createAKScluster
-    displayName: "Install Cilium on AKS Overlay"
+    pool:
+      name: "$(BUILD_POOL_NAME_DEFAULT)"
+    displayName: "Cilium Load Test"
     jobs:
       - job: deploy_cilium_components
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
         steps:
           - task: AzureCLI@1
             displayName: "Install Cilium, CNS, and ip-masq-agent"
@@ -65,60 +64,34 @@ stages:
                 kubectl create configmap config-reconcile.yaml
                 cd ../../../..
                 kubectl get po -owide -A
-  - stage: pod_deployment
-    dependsOn: install_cilium
-    displayName: "Pod Deployment"
-    jobs:
       - job: deploy_pods
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
         steps:
           - template: ../load-test-templates/pod-deployment-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}
               scaleup: 2400
               os: linux
-  - stage: validate_state
-    dependsOn: pod_deployment
-    displayName: "Validate State"
-    jobs:
       - job: validate_state
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
+        dependsOn: deploy_pods
         steps:
           - template: ../load-test-templates/validate-state-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}
-  - stage: restart_nodes
-    dependsOn: validate_state
-    displayName: "Restart Node"
-    jobs:
       - job: restart_nodes
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
+        dependsOn: validate_state
         steps:
           - template: ../load-test-templates/restart-node-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}
-  - stage: validate_restart_state
-    dependsOn: restart_nodes
-    displayName: "Validate Restart State"
-    jobs:
       - job: validate_restart_state
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
+        dependsOn: restart_nodes
         steps:
           - template: ../load-test-templates/validate-state-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}
               restartCase: "true"
-  - stage: connectivity_tests
-    dependsOn: validate_restart_state
-    displayName: "Connectivity Tests"
-    jobs:
       - job: cni_tests
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
+        dependsOn: validate_restart_state
         steps:
           - script: |
               echo "install cilium CLI"
@@ -147,33 +120,3 @@ stages:
             retryCountOnTaskFailure: 6
             name: "CiliumConnectivityTests"
             displayName: "Run Cilium Connectivity Tests"
-  - stage: delete
-    displayName: "Delete Resources"
-    dependsOn:
-      - connectivity_tests
-    jobs:
-      - job: delete_resources
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
-        steps:
-          - task: AzureCLI@1
-            inputs:
-              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
-              scriptLocation: "inlineScript"
-              scriptType: "bash"
-              addSpnToEnvironment: true
-              inlineScript: |
-                set -ex
-                if [ "$(DELETE_RESOURCES)" ]
-                then
-                  echo "Deleting Cluster and resource group"
-                  make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(make revision)
-                  make -C ./hack/aks azcfg AZCLI=az REGION=$(LOCATION)
-                  make -C ./hack/aks down AZCLI=az REGION=$(LOCATION) SUB=$(SUBSCRIPTION_ID) CLUSTER=${{ parameters.clusterName }}-$(make revision)
-                  echo "Cluster and resources down"
-                else
-                  echo "Deletion of resources is False"
-                fi
-            name: "CleanUpCluster"
-            displayName: "Cleanup cluster"
-    condition: always()

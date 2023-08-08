@@ -1,6 +1,11 @@
 pr: none
 trigger: none
 
+# variables:
+#   clusters:
+#     - [cilium_overlay, Cilium on AKS Overlay, overlay-no-kube-proxy-up, cilium-overlay, "Standard_DS4_v2", linux]
+#     - [win_cniv1, Windows AKS cniv1, windows-cniv1-up, win-cniv1, "Standard_DS4_v2", windows]
+
 stages:
   - stage: setup
     displayName: Setup
@@ -14,9 +19,44 @@ stages:
               echo "Setting up environment"
               echo "##vso[task.setvariable variable=npmVersion;isOutput=true]$(make npm-version)"
               go version
+              echo "##vso[task.setvariable variable=commitID;isOutput=true]$(make revision)"
+              echo "##vso[task.setvariable variable=npmVersion;isOutput=true]$(make npm-version)"
+              echo "##vso[task.setvariable variable=dropgzVersion;isOutput=true]$(make cni-dropgz-version)"
             name: "SetEnvVars"
             displayName: "Set Environment Variables"
             condition: always()
+  # Need to have each cluster created then we can go into job'd tests that calls each cluster
+
+  - stage: build_images
+    dependsOn: setup
+    displayName: "Build CNI Images"
+    jobs:
+      - job: build_cni_images
+        pool:
+          name: "$(BUILD_POOL_NAME_LINUX_AMD64)"
+        strategy:
+          matrix:
+            cni_dropgz_test_linux_amd64:
+              arch: amd64
+              name: cni-dropgz
+              os: linux
+            cni_dropgz_test_windows2022_amd64:
+              arch: amd64
+              name: cni-dropgz-test
+              os: windows
+              os_version: ltsc2022
+            cns_linux_amd64:
+              arch: amd64
+              name: cns
+              os: linux
+        steps:
+          - template: ../../containers/container-template.yaml
+            parameters:
+              arch: $(arch)
+              name: $(name)
+              os: $(os)
+              os_version: $(os_version)
+
   - template: cilium/cilium-overlay-load-test-template.yaml
     parameters:
       name: cilium
@@ -25,6 +65,7 @@ stages:
       nodeCount: ${LINUX_NODE_COUNT}
       vmSize: "Standard_DS4_v2"
       dependsOn: setup
+      nodeCount: 10
 
   - template: singletenancy/windows-cni-load-test-template.yaml
     parameters:
@@ -50,3 +91,36 @@ stages:
       windowsVMSize: ${WINDOWS_VM_SKU}
       os: windows
       cni: cniv2
+
+  - stage: delete_resources
+    displayName: "Delete Resources"
+    dependsOn:
+      - win_cniv1
+      - cilium
+      - setup
+    variables:
+      commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
+    jobs:
+      - job: delete_resources
+        steps:
+          - task: AzureCLI@1
+            inputs:
+              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+              scriptLocation: "inlineScript"
+              scriptType: "bash"
+              addSpnToEnvironment: true
+              inlineScript: |
+                set -ex
+                if [ "$(DELETE_RESOURCES)" ]
+                then
+                  echo "Deleting Cluster and resource group"
+                  make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(commitID)
+                  make -C ./hack/aks azcfg AZCLI=az REGION=$(LOCATION)
+                  make -C ./hack/aks down AZCLI=az REGION=$(LOCATION) SUB=$(SUBSCRIPTION_ID) CLUSTER=${{ parameters.clusterName }}-$(commitID)
+                  echo "Cluster and resources down"
+                else
+                  echo "Deletion of resources is False"
+                fi
+            name: "CleanUpCluster"
+            displayName: "Cleanup cluster"
+    condition: always()

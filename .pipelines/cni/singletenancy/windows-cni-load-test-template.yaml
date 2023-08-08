@@ -27,7 +27,30 @@ stages:
               nodeCount: ${{ parameters.nodeCount }}
               vmSize: ${{ parameters.vmSize }}
               windowsVMSize: ${{ parameters.windowsVMSize }}
-  - stage: build_images
+  # - stage: build_images
+  #   pool:
+  #     name: $(BUILD_POOL_NAME_DEFAULT)
+  #   dependsOn: ${{ parameters.dependsOn }}
+  #   displayName: "Build CNI Images"
+  #   jobs:
+  #     - job: build_cni_images
+  #       pool:
+  #         name: "$(BUILD_POOL_NAME_LINUX_AMD64)"
+  #       strategy:
+  #         matrix:
+  #           cni_dropgz_windows2022_amd64:
+  #             arch: amd64
+  #             name: cni-dropgz-test
+  #             os: windows
+  #             os_version: ltsc2022
+  #       steps:
+  #         - template: ../../containers/container-template.yaml
+  #           parameters:
+  #             arch: $(arch)
+  #             name: $(name)
+  #             os: $(os)
+  #             os_version: $(os_version)
+  - stage:  ${{ parameters.name }}
     pool:
       name: $(BUILD_POOL_NAME_DEFAULT)
     dependsOn: ${{ parameters.dependsOn }}
@@ -81,7 +104,7 @@ stages:
       - binaries
     displayName: "Update CNI on Cluster"
     jobs:
-      - job: deploy_pods
+      - job: update_cni
         pool:
           name: "$(BUILD_POOL_NAME_DEFAULT)"
         strategy:
@@ -113,32 +136,20 @@ stages:
               kubectl get pods -A
             name: "WaitForCNI"
             displayName: "Wait For CNI"
-  - stage: datapath_tests
-    pool:
-      name: $(BUILD_POOL_NAME_DEFAULT)
-    dependsOn: update_cni
-    displayName: "Datapath Test - Windows"
-    jobs:
       - template: ../k8s-e2e/k8s-e2e-job-template.yaml
         parameters:
           sub: $(TEST_SUB_SERVICE_CONNECTION)
           clusterName: ${{ parameters.clusterName }}
           os: ${{ parameters.os }}
+          dependsOn: update_cni
           datapath: true
           dns: true
           portforward: true
           hybridWin: true
           service: true
           hostport: true
-  - stage: pod_deployment_windows
-    pool:
-      name: $(BUILD_POOL_NAME_DEFAULT)
-    dependsOn: datapath_tests
-    displayName: "Pod Deployment"
-    jobs:
       - job: deploy_pods
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
+        dependsOn: cni_k8se2e
         steps:
           - template: ../load-test-templates/pod-deployment-template.yaml
             parameters:
@@ -147,15 +158,8 @@ stages:
               os: ${{ parameters.os }}
               cni: ${{ parameters.cni }}
               iterations: ${WINDOWS_ITERATIONS}
-  - stage: validate_state_windows
-    pool:
-      name: $(BUILD_POOL_NAME_DEFAULT)
-    dependsOn: pod_deployment_windows
-    displayName: "Validate State"
-    jobs:
       - job: validate_state
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
+        dependsOn: deploy_pods
         steps:
           - template: ../load-test-templates/validate-state-template.yaml
             parameters:
@@ -179,35 +183,35 @@ stages:
           os_version: 'ltsc2022'
           tag: $(npmVersion)
 
-  - stage: delete_resources
-    pool:
-      name: $(BUILD_POOL_NAME_DEFAULT)
-    displayName: "Delete Resources"
-    dependsOn:
-      - npm
-    jobs:
-      - job: delete_resources
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
-        steps:
-          - task: AzureCLI@1
-            inputs:
-              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
-              scriptLocation: "inlineScript"
-              scriptType: "bash"
-              addSpnToEnvironment: true
-              inlineScript: |
-                set -ex
-                if [ "$(DELETE_RESOURCES)" ]
-                then
-                  echo "Deleting Cluster and resource group"
-                  make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(make revision)
-                  make -C ./hack/aks azcfg AZCLI=az REGION=$(LOCATION)
-                  make -C ./hack/aks down AZCLI=az REGION=$(LOCATION) SUB=$(SUBSCRIPTION_ID) CLUSTER=${{ parameters.clusterName }}-$(make revision)
-                  echo "Cluster and resources down"
-                else
-                  echo "Deletion of resources is False"
-                fi
-            name: "CleanUpCluster"
-            displayName: "Cleanup cluster"
-    condition: always()
+  # - stage: delete_resources
+  #   pool:
+  #     name: $(BUILD_POOL_NAME_DEFAULT)
+  #   displayName: "Delete Resources"
+  #   dependsOn:
+  #     - npm
+  #   jobs:
+  #     - job: delete_resources
+  #       pool:
+  #         name: "$(BUILD_POOL_NAME_DEFAULT)"
+  #       steps:
+  #         - task: AzureCLI@1
+  #           inputs:
+  #             azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+  #             scriptLocation: "inlineScript"
+  #             scriptType: "bash"
+  #             addSpnToEnvironment: true
+  #             inlineScript: |
+  #               set -ex
+  #               if [ "$(DELETE_RESOURCES)" ]
+  #               then
+  #                 echo "Deleting Cluster and resource group"
+  #                 make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(make revision)
+  #                 make -C ./hack/aks azcfg AZCLI=az REGION=$(LOCATION)
+  #                 make -C ./hack/aks down AZCLI=az REGION=$(LOCATION) SUB=$(SUBSCRIPTION_ID) CLUSTER=${{ parameters.clusterName }}-$(make revision)
+  #                 echo "Cluster and resources down"
+  #               else
+  #                 echo "Deletion of resources is False"
+  #               fi
+  #           name: "CleanUpCluster"
+  #           displayName: "Cleanup cluster"
+  #   condition: always()
