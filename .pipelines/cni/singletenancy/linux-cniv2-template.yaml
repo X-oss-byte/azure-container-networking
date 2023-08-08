@@ -6,7 +6,6 @@ parameters:
   nodeCount: ""
   vmSize: ""
   os: linux
-  cni: ""
   arch: ""
   testDropgz: true
 
@@ -91,6 +90,7 @@ stages:
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               os: ${{ parameters.os }}
+              cni: cniv2
       - job: restart_nodes
         dependsOn: validate_state
         steps:
@@ -101,6 +101,7 @@ stages:
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               os: ${{ parameters.os }}
+              cni: cniv2
               restartCase: "true"
       - template: ../k8s-e2e/k8s-e2e-job-template.yaml
         parameters:

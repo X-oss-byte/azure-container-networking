@@ -75,7 +75,6 @@ stages:
       vmSize: Standard_B2ms
       dependsOn: setup
       windowsVMSize: ${WINDOWS_VM_SKU}
-      cni: cniv1 # Is this being used?
       arch: amd64
 
   - template: singletenancy/linux-cniv2-template.yaml
@@ -86,7 +85,6 @@ stages:
       nodeCount: ${LINUX_NODE_COUNT} # Add to pipeline variables default to 2
       vmSize: Standard_B2ms
       dependsOn: setup
-      cni: cniv2 # Is this being used?
       arch: amd64
 
 #change template filepath once I have decided on the name.
@@ -98,7 +96,6 @@ stages:
       nodeCount: ${LINUX_NODE_COUNT}  # Add to pipeline variables
       vmSize: Standard_B2ms
       dependsOn: setup
-      cni: cniv2 # Is this being used?
       arch: amd64
 
 

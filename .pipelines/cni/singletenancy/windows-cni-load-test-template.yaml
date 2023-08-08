@@ -7,7 +7,6 @@ parameters:
   vmSize: ""
   windowsVMSize: ""
   os: windows
-  cni: ""
   arch: ""
 
 stages:
@@ -126,13 +125,12 @@ stages:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               scaleup: ${WINDOWS_SCALEUP}
               os: ${{ parameters.os }}
-              cni: ${{ parameters.cni }}
               iterations: ${WINDOWS_ITERATIONS}
           - template: ../load-test-templates/validate-state-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               os: ${{ parameters.os }}
-              cni: ${{ parameters.cni }}
+              cni: cniv1
       - template: ../k8s-e2e/k8s-e2e-job-template.yaml
         parameters:
           sub: $(TEST_SUB_SERVICE_CONNECTION)
