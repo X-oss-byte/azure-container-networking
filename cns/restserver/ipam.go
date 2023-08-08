@@ -944,7 +944,7 @@ func (service *HTTPRestService) GetEndpointHandler(w http.ResponseWriter, r *htt
 	response := GetEndpointResponse{
 		Response: Response{
 			ReturnCode: types.Success,
-			Message:    "[Azure CNS] GetEndpoint retruned successfully",
+			Message:    "[Azure CNS] GetEndpoint returned successfully",
 		},
 		EndpointInfo: *endpointInfo,
 	}
