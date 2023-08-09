@@ -7,6 +7,7 @@ pr:
     - "zapai/*"
     - "azure-ipam/*"
     - "dropgz/*"
+    - "cni/*"
     exclude:
     - "*"
 
@@ -16,6 +17,7 @@ trigger:
     - "zapai/*"
     - "azure-ipam/*"
     - "dropgz/*"
+    - "cni/*"
     exclude:
     - "*"
   tags:
@@ -23,6 +25,7 @@ trigger:
     - "zapai/*"
     - "azure-ipam/*"
     - "dropgz/*"
+    - "cni/*"
     exclude:
     - "v*"
 
@@ -83,7 +86,7 @@ stages:
           name: "$(BUILD_POOL_NAME_DEFAULT)"
         steps:
           - script: |
-              make all-binaries-platforms 
+              make all-binaries-platforms
             name: "BuildAllPlatformBinaries"
             displayName: "Build all platform binaries"
 
@@ -120,8 +123,6 @@ stages:
             displayName: Create artifact storage container
             condition: succeeded()
 
-          - publish: ./test/apimodels/
-            artifact: clusterdefinitions
 
   - stage: containerize
     displayName: Build Images
@@ -249,7 +250,7 @@ stages:
       pipelineBuildImage: "$(BUILD_IMAGE)"
       testDropgz: true
       clusterName: "submodules-ciliume2e"
-    
+
   - template: singletenancy/cilium-overlay/cilium-overlay-e2e-job-template.yaml
     parameters:
       name: "cilium_overlay_e2e"
