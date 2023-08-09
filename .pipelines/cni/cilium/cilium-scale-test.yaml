@@ -30,8 +30,9 @@ stages:
                 CNS_IMAGE=${CNS_IMAGE}
                 sed -i '/containers:/{n;n;s/\(image\).*/\1: '"${CNS_IMAGE//\//\\/}"'/}' test/integration/manifests/cns/daemonset.yaml 
                 kubectl apply -f test/integration/manifests/cns/daemonset.yaml 
-                vmss_name=$(az vmss list -g MC_${CLUSTER}_${CLUSTER}_$(LOCATION) --query "[].name" -o tsv)
-                make -C ./hack/aks restart-vmss AZCLI=az CLUSTER=${CLUSTER} REGION=$(LOCATION) VMSS_NAME=$vmss_name
+                for val in $(az vmss list -g MC_${clusterName}_${clusterName}_$(REGION_AKS_CLUSTER_TEST) --query "[].name" -o tsv); do
+                  make -C ./hack/aks restart-vmss AZCLI=az CLUSTER=${clusterName} REGION=$(REGION_AKS_CLUSTER_TEST) VMSS_NAME=${val}
+                done
                 kubectl get node 
                 kubectl get pod -A
             name: "UpdateCiliumandCNSVersion"
@@ -93,32 +94,53 @@ stages:
               inlineScript: |
                 az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
                 echo "collect cpu and memory usage before scaling for network policies"
-                mkdir before_netpol_cpu_and_mem
-                cd before_netpol_cpu_and_mem
+                mkdir test1_1_netpol_cpu_and_mem_before
+                cd test1_1_netpol_cpu_and_mem_before
                 echo "running k top node" 
                 kubectl top node >> "node_before_netpol_scale.log"
                 echo "running k top pod"
                 kubectl top pod -A | grep cilium >> "pod_before_netpol_scale.log"
                 echo "Logs will be available as a build artifact"
-                ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/before_netpol_cpu_and_mem/
+                ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/test1_1_netpol_cpu_and_mem_before/
                 echo $ARTIFACT_DIR
                 sudo rm -rf $ARTIFACT_DIR 
                 sudo mkdir $ARTIFACT_DIR
                 cd ..
-                sudo cp ./before_netpol_cpu_and_mem/* $ARTIFACT_DIR
+                sudo cp ./test1_1_netpol_cpu_and_mem_before/* $ARTIFACT_DIR
                 echo "scale deployment and to prep for network policies test"
                 cd test/scale
                 chmod +x test-scale.sh
                 ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=${REAL_PODS_PER_NODE_NETPOL} --num-real-deployments=${NUM_REAL_DEPLOYMENTS_NETPOL} --num-real-replicas=${NUM_REAL_REPLICAS_NETPOL} --num-network-policies=${APPLIED_NETPOL} --num-unapplied-network-policies=${UNAPPLIED_NETPOL} --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=${NUM_REAL_SVC_NETPOL} --delete-labels
+                echo "collect cpu and mem results after scaling"
+                mkdir test1_2_netpol_cpu_and_mem_scale
+                cd test1_2_netpol_cpu_and_mem_scale
+                echo "running k top node" 
+                kubectl top node >> "node_netpol_scale.log"
+                echo "running k top pod"
+                kubectl top pod -A | grep cilium >> "pod_netpol_scale.log"
+                echo "Logs will be available as a build artifact"
+                ARTIFACT_DIR2=$(Build.ArtifactStagingDirectory)/test1_2_netpol_cpu_and_mem_scale/
+                echo $ARTIFACT_DIR2
+                sudo rm -rf $ARTIFACT_DIR2
+                sudo mkdir $ARTIFACT_DIR2
+                cd ..
+                sudo cp ./test1_2_netpol_cpu_and_mem_scale/* $ARTIFACT_DIR2
             name: "scaling"
             displayName: "Run scale script"
           - task: PublishBuildArtifacts@1
             inputs:
-              artifactName: before_netpol_cpu_and_mem
-              pathtoPublish: "$(Build.ArtifactStagingDirectory)/before_netpol_cpu_and_mem"
+              artifactName: test1_1_netpol_cpu_and_mem_before
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/test1_1_netpol_cpu_and_mem_before"
             condition: always()
             name: "PublishResults"
             displayName: "Result Artifacts"
+          - task: PublishBuildArtifacts@1
+            inputs:
+              artifactName: test1_2_netpol_cpu_and_mem_scale
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/test1_2_netpol_cpu_and_mem_scale"
+            condition: always()
+            name: "PublishResults2"
+            displayName: "Result Network Policies Artifacts"
   - stage: test_network_policies_connectivity
     displayName: "Test Network Policies"
     jobs:
@@ -140,25 +162,25 @@ stages:
                 chmod +x test-connectivity.sh
                 ./test-connectivity.sh --num-scale-pods-to-verify=${NUM_SCALE_PODS_TO_VERIFY} --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
                 echo "collect cpu and mem results after connectivity tests"
-                mkdir after_netpol_cpu_and_mem
-                cd after_netpol_cpu_and_mem
+                mkdir test1_3_netpol_cpu_and_mem_after
+                cd test1_3_netpol_cpu_and_mem_after
                 echo "running k top node" 
                 kubectl top node >> "node_after_netpol_tests.log"
                 echo "running k top pod"
                 kubectl top pod -A | grep cilium >> "pod_after_netpol_tests.log"
                 echo "Logs will be available as a build artifact"
-                ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/after_netpol_cpu_and_mem/
+                ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/test1_3_netpol_cpu_and_mem_after/
                 echo $ARTIFACT_DIR
                 sudo rm -rf $ARTIFACT_DIR 
                 sudo mkdir $ARTIFACT_DIR
                 cd ..
-                sudo cp ./after_netpol_cpu_and_mem/* $ARTIFACT_DIR
+                sudo cp ./test1_3_netpol_cpu_and_mem_after/* $ARTIFACT_DIR
             name: "TestNetworkPolicies"
             displayName: "Network Policies Connectivity Test"
           - task: PublishBuildArtifacts@1
             inputs:
-              artifactName: after_netpol_cpu_and_mem
-              pathtoPublish: "$(Build.ArtifactStagingDirectory)/after_netpol_cpu_and_mem"
+              artifactName: test1_3_netpol_cpu_and_mem_after
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/test1_3_netpol_cpu_and_mem_after"
             condition: always()
             name: "PublishResults"
             displayName: "Result Artifacts"
@@ -178,31 +200,52 @@ stages:
               inlineScript: |
                 az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
                 echo "collect cpu and mem results before scale for lb tests"
-                mkdir before_lb_cpu_and_mem
-                cd before_lb_cpu_and_mem
+                mkdir test2_1_lb_cpu_and_mem_before
+                cd test2_1_lb_cpu_and_mem_before
                 echo "running k top node" 
                 kubectl top node >> "node_before_lb_scale.log"
                 echo "running k top pod"
                 kubectl top pod -A | grep cilium >> "pod_before_lb_scale.log"
                 echo "Logs will be available as a build artifact"
-                ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/before_lb_cpu_and_mem/
+                ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/test2_1_lb_cpu_and_mem_before/
                 echo $ARTIFACT_DIR
                 sudo rm -rf $ARTIFACT_DIR 
                 sudo mkdir $ARTIFACT_DIR
                 cd ..
-                sudo cp ./before_lb_cpu_and_mem/* $ARTIFACT_DIR
+                sudo cp ./test2_1_lb_cpu_and_mem_before/* $ARTIFACT_DIR
                 cd test/scale
                 chmod +x test-scale.sh
                 ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=${REAL_PODS_PER_NODE_LB} --num-real-deployments=${NUM_REAL_DEPLOYMENTS_LB} --num-real-replicas=${NUM_REAL_REPLICAS_LB} --num-network-policies=0 --num-unapplied-network-policies=0 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=${NUM_REAL_SVC_LB} --delete-labels --real-pod-type=nginx
+                echo "collect cpu and mem results after scaling"
+                mkdir test2_2_lb_cpu_and_mem_scale
+                cd scale_lb_cpu_and_mem
+                echo "running k top node" 
+                kubectl top node >> "node_lb_scale.log"
+                echo "running k top pod"
+                kubectl top pod -A | grep cilium >> "pod_lb_scale.log"
+                echo "Logs will be available as a build artifact"
+                ARTIFACT_DIR2=$(Build.ArtifactStagingDirectory)/test2_2_lb_cpu_and_mem_scale/
+                echo $ARTIFACT_DIR2
+                sudo rm -rf $ARTIFACT_DIR2
+                sudo mkdir $ARTIFACT_DIR2
+                cd ..
+                sudo cp ./test2_2_lb_cpu_and_mem_scale/* $ARTIFACT_DIR2
             name: "TestLBServices"
             displayName: "Scale for load tests"
           - task: PublishBuildArtifacts@1
             inputs:
-              artifactName: before_lb_cpu_and_mem
-              pathtoPublish: "$(Build.ArtifactStagingDirectory)/before_lb_cpu_and_mem"
+              artifactName: test2_1_lb_cpu_and_mem_before
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/test2_1_lb_cpu_and_mem_before"
             condition: always()
             name: "PublishResults"
             displayName: "Result Artifacts"
+          - task: PublishBuildArtifacts@1
+            inputs:
+              artifactName: test2_2_lb_cpu_and_mem_scale
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/test2_2_lb_cpu_and_mem_scale"
+            condition: always()
+            name: "PublishResults2"
+            displayName: "Result Scale Artifacts"
   - stage: benchmark_testing
     displayName: "Run apachebench test"
     jobs:
@@ -224,42 +267,42 @@ stages:
                 echo "wait for pod to become ready"
                 kubectl rollout status deployment apachebench --timeout=30s
                 kubectl get pod -owide
-                mkdir apachebench
-                cd apachebench
+                mkdir test2_apachebench
+                cd test2_apachebench
                 AB_POD=$(kubectl get pod -l app=apachebench | grep apachebench | awk '{print $1}')
                 kubectl exec -it $AB_POD -- ab -n ${AB_REQUESTS} -c ${AB_CONCURRENCY} -r http://real-svc-00001.scale-test/ >> "ab_${AB_REQUESTS}requests_${NUM_REAL_REPLICAS_LB}kpods.log"
                 echo "collect cpu and memory usage after apachebench tests"
                 cd ..
-                mkdir after_lb_cpu_and_mem
-                cd after_lb_cpu_and_mem
+                mkdir test2_3_lb_cpu_and_mem_after
+                cd test2_3_lb_cpu_and_mem_after
                 echo "running k top node" 
                 kubectl top node >> "node_after_lb_tests.log"
                 echo "running k top pod"
                 kubectl top pod -A | grep cilium >> "pod_after_lb_tests.log"
                 cd ..
                 echo "Logs will be available as a build artifact"
-                ARTIFACT_DIR2=$(Build.ArtifactStagingDirectory)/after_lb_cpu_and_mem/
+                ARTIFACT_DIR2=$(Build.ArtifactStagingDirectory)/test2_3_lb_cpu_and_mem_after/
                 ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/apachebench/
                 echo $ARTIFACT_DIR
                 echo $ARTIFACT_DIR2
                 sudo rm -rf $ARTIFACT_DIR $ARTIFACT_DIR2
                 sudo mkdir $ARTIFACT_DIR
                 sudo mkdir $ARTIFACT_DIR2
-                sudo cp ./apachebench/* $ARTIFACT_DIR
-                sudo cp ./after_lb_cpu_and_mem/* $ARTIFACT_DIR2
+                sudo cp ./test2_apachebench/* $ARTIFACT_DIR
+                sudo cp ./test2_3_lb_cpu_and_mem_after/* $ARTIFACT_DIR2
             name: "TestLBServices"
             displayName: "Apachebench testing"
           - task: PublishBuildArtifacts@1
             inputs:
-              artifactName: apachebench
-              pathtoPublish: "$(Build.ArtifactStagingDirectory)/apachebench"
+              artifactName: test2_apachebench
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/test2_apachebench"
             condition: always()
             name: "PublishResults"
             displayName: "Apachebench Result Artifacts"
           - task: PublishBuildArtifacts@1
             inputs:
-              artifactName: after_lb_cpu_and_mem
-              pathtoPublish: "$(Build.ArtifactStagingDirectory)/after_lb_cpu_and_mem"
+              artifactName: test2_3_lb_cpu_and_mem_after
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/test2_3_lb_cpu_and_mem_after"
             condition: always()
             name: "PublishResults2"
             displayName: "Result Artifacts"
@@ -285,15 +328,15 @@ stages:
                 mkdir netperf
                 sh hack/scripts/netperf.sh
                 echo "collect cpu and mem results after netperf tests"
-                mkdir netperf_cpu_and_mem
-                cd netperf_cpu_and_mem
+                mkdir test3_netperf_cpu_and_mem
+                cd test3_netperf_cpu_and_mem
                 echo "running k top node" 
                 kubectl top node >> "node_netperf.log"
                 echo "running k top pod"
                 kubectl top pod -A | grep cilium >> "pod_netperf.log"
                 echo "Logs will be available as a build artifact"
-                ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/netperf_cpu_and_mem/
-                ARTIFACT_DIR2=$(Build.ArtifactStagingDirectory)/netperf/
+                ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/test3_netperf_cpu_and_mem/
+                ARTIFACT_DIR2=$(Build.ArtifactStagingDirectory)/test3_netperf/
                 echo $ARTIFACT_DIR
                 echo $ARTIFACT_DIR2
                 sudo rm -rf $ARTIFACT_DIR 
@@ -301,21 +344,21 @@ stages:
                 sudo mkdir $ARTIFACT_DIR
                 sudo mkdir $ARTIFACT_DIR2
                 cd ..
-                sudo cp ./netperf_cpu_and_mem/* $ARTIFACT_DIR
-                sudo cp ./netperf/* $ARTIFACT_DIR2
+                sudo cp ./test3_netperf_cpu_and_mem/* $ARTIFACT_DIR
+                sudo cp ./test3_netperf/* $ARTIFACT_DIR2
             name: "NetperfIterations"
             displayName: "Run Netperf tests"
           - task: PublishBuildArtifacts@1
             inputs:
-              artifactName: before_lb_cpu_and_mem
-              pathtoPublish: "$(Build.ArtifactStagingDirectory)/netperf_cpu_and_mem"
+              artifactName: test3_netperf_cpu_and_mem
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/test3_netperf_cpu_and_mem"
             condition: always()
             name: "PublishResults"
             displayName: "Netperf cpu and mem Artifacts"
           - task: PublishBuildArtifacts@1
             inputs:
-              artifactName: netperf
-              pathtoPublish: "$(Build.ArtifactStagingDirectory)/netperf"
+              artifactName: test3_netperf
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)/test3_netperf"
             condition: always()
             name: "PublishNetperf"
             displayName: "Netperf Result Artifacts"

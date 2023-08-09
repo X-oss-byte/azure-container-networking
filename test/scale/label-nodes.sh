@@ -34,5 +34,4 @@ do
     else
         echo "Error in applying label to the node $node_name"
     fi
-    sleep 2s
 done
