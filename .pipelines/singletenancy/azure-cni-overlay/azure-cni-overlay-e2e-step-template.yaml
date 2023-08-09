@@ -72,7 +72,7 @@ steps:
       kubectl apply -f config-reconcile.yaml
       cd ../../../..
       kubectl get po -owide -A
-      CNS=$(make cns-version) DROPGZ=$(make cni-dropgz-version)
+      CNS=$(make cns-version) DROPGZ=$(make cni-dropgz-test-version)
       sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=${CNS} CNI_DROPGZ_VERSION=${DROPGZ} INSTALL_CNS=true INSTALL_AZURE_CNI_OVERLAY=true TEST_DROPGZ=${{ parameters.testDropgz }}
     retryCountOnTaskFailure: 3
     name: "integrationTest"

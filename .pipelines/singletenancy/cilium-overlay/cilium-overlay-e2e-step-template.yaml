@@ -102,7 +102,7 @@ steps:
       then
           CNS=$(CNS_VERSION) DROPGZ=$(DROP_GZ_VERSION) && echo "Running nightly"
       else
-          CNS=$(make cns-version) DROPGZ=$(make cni-dropgz-version)
+          CNS=$(make cns-version) DROPGZ=$(make cni-dropgz-test-version)
       fi
       sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=${CNS} CNI_DROPGZ_VERSION=${DROPGZ} INSTALL_CNS=true INSTALL_OVERLAY=true TEST_DROPGZ=${{ parameters.testDropgz }}
     retryCountOnTaskFailure: 3
@@ -172,7 +172,7 @@ steps:
     displayName: "Validate Pods"
 
   - script: |
-      if [ "$CILIUM_VERSION_TAG" = "cilium-nightly-pipeline" ]; then 
+      if [ "$CILIUM_VERSION_TAG" = "cilium-nightly-pipeline" ]; then
         kubectl get pod -owide -n cilium-test
         echo "wait for pod and cilium identity deletion in cilium-test namespace"
         ns="cilium-test"
@@ -191,7 +191,7 @@ steps:
           echo "##[error]Cilium Identities still present in cilium-test namespace"
         else
           printf -- "Identities deleted from cilium-test namespace\n"
-        fi 
+        fi
       else
         echo "skip cilium identities check for PR pipeline"
       fi
