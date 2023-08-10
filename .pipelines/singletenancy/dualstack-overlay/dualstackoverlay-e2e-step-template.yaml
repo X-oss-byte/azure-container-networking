@@ -74,6 +74,8 @@ steps:
       sudo go test -count=1 datapath_linux_test.go -timeout 1m -tags connection -run ^TestDatapathLinux$ -tags=connection,integration -isDualStack=true
       echo "Dualstack Overlay Linux datapath IPv4 test"
       sudo go test -count=1 datapath_linux_test.go -timeout 1m -tags connection -run ^TestDatapathLinux$ -tags=connection,integration
+      echo "removing load-test namespace"
+      kubectl delete ns load-test
     name: "DualStack_Overlay_Linux_Tests"
     displayName: "DualStack Overlay Linux Tests"
 
@@ -93,7 +95,7 @@ steps:
         kubectl apply -f test/integration/manifests/cns/daemonset-windows.yaml
         kubectl get po -owide -A
         echo "Waiting for CNS pods to be running"
-        sleep 45
+        sleep 30
         echo "Upload CNI"
         dropgz_version=$(make cni-dropgz-version)
         export DROP_GZ_URL=$( make cni-dropgz-test-image-name-and-tag OS='windows' ARCH='amd64' OS_VERSION='ltsc2022' CNI_DROPGZ_VERSION=${dropgz_version})
