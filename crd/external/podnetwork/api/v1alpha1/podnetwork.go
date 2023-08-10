@@ -41,7 +41,7 @@ type PodNetworkList struct {
 type PodNetworkSpec struct {
 	// +kubebuilder:validation:Optional
 	// customer vnet guid
-	VnetGuid string `json:"vnetGuid,omitempty"`
+	VnetGUID string `json:"vnetGuid,omitempty"`
 	// customer subnet name
 	Subnet string `json:"subnet,omitempty"`
 }
