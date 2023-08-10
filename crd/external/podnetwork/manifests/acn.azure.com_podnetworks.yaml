@@ -33,7 +33,7 @@ spec:
       name: Network
       priority: 1
       type: string
-    - jsonPath: .spec.subnet
+    - jsonPath: .spec.subnetResourceID
       name: Subnet
       priority: 1
       type: string
@@ -57,7 +57,7 @@ spec:
           spec:
             description: PodNetworkSpec defines the desired state of PodNetwork
             properties:
-              subnet:
+              subnetResourceID:
                 description: customer subnet name
                 type: string
               vnetGuid:

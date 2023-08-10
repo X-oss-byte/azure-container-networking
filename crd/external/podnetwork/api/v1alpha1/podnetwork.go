@@ -19,7 +19,7 @@ import (
 // +kubebuilder:printcolumn:name="Error Message",type=string,priority=1,JSONPath=`.status.errorMessage`
 // +kubebuilder:printcolumn:name="Address Prefixes",type=string,priority=1,JSONPath=`.status.addressPrefixes`
 // +kubebuilder:printcolumn:name="Network",type=string,priority=1,JSONPath=`.spec.vnetGuid`
-// +kubebuilder:printcolumn:name="Subnet",type=string,priority=1,JSONPath=`.spec.subnet`
+// +kubebuilder:printcolumn:name="Subnet",type=string,priority=1,JSONPath=`.spec.subnetResourceID`
 type PodNetwork struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -43,7 +43,7 @@ type PodNetworkSpec struct {
 	// customer vnet guid
 	VnetGUID string `json:"vnetGuid,omitempty"`
 	// customer subnet name
-	Subnet string `json:"subnet,omitempty"`
+	SubnetResourceID string `json:"subnetResourceID,omitempty"`
 }
 
 // Status indicates the status of PN
