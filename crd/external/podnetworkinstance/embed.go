@@ -13,7 +13,7 @@ import (
 //go:embed manifests/acn.azure.com_podnetworkinstances.yaml
 var PodNetworkInstanceYAML []byte
 
-// GetPodNetworkInstancesDefinition parses the raw []byte PodNetworkInstance in
+// GetPodNetworkInstances parses the raw []byte PodNetworkInstance in
 // to a CustomResourceDefinition and returns it or an unmarshalling error.
 func GetPodNetworkInstances() (*apiextensionsv1.CustomResourceDefinition, error) {
 	podNetworkInstances := &apiextensionsv1.CustomResourceDefinition{}
