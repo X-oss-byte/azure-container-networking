@@ -282,7 +282,7 @@ stages:
                 cd ..
                 echo "Logs will be available as a build artifact"
                 ARTIFACT_DIR2=$(Build.ArtifactStagingDirectory)/test2_3_lb_cpu_and_mem_after/
-                ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/ test2_apachebench/
+                ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/test2_apachebench/
                 echo $ARTIFACT_DIR
                 echo $ARTIFACT_DIR2
                 sudo rm -rf $ARTIFACT_DIR $ARTIFACT_DIR2
