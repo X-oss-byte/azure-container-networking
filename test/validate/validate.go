@@ -248,17 +248,16 @@ func (v *Validator) validateHNSNetworkState(ctx context.Context) error {
 		if v.cni == "dualstack" {
 			if len(hnsNetwork) == 1 {
 				return errors.Wrapf(err, "HNS default ext network or azure network does not exist")
-			} else {
-				for _, network := range hnsNetwork {
-					if !network.IPv6 {
-						return errors.Wrapf(err, "windows HNS network IPv6 flag is not set correctly")
-					}
-					if network.State != 1 {
-						return errors.Wrapf(err, "windows HNS network state is not correct")
-					}
-					if network.ManagementIP == "" || network.ManagementIPv6 == "" {
-						return errors.Wrapf(err, "windows HNS network is missing ipv4 or ipv6 management IP")
-					}
+			}
+			for _, network := range hnsNetwork {
+				if !network.IPv6 {
+					return errors.Wrapf(err, "windows HNS network IPv6 flag is not set correctly")
+				}
+				if network.State != 1 {
+					return errors.Wrapf(err, "windows HNS network state is not correct")
+				}
+				if network.ManagementIP == "" || network.ManagementIPv6 == "" {
+					return errors.Wrapf(err, "windows HNS network is missing ipv4 or ipv6 management IP")
 				}
 			}
 		}
