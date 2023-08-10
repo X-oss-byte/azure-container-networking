@@ -310,7 +310,6 @@ stages:
     displayName: "Run netperf tests"
     jobs:
       - job: netperf
-        timeoutInMinutes: 120
         pool:
           name: "$(BUILD_POOL_NAME_DEFAULT)"
         steps:
@@ -325,7 +324,7 @@ stages:
                 chmod +x hack/scripts/netperf.sh
                 kubectl apply -f hack/manifests/netperf-pod.yaml
                 kubectl rollout status deployment container6 --timeout=30s
-                mkdir netperf
+                mkdir test3_netperf
                 sh hack/scripts/netperf.sh
                 echo "collect cpu and mem results after netperf tests"
                 mkdir test3_netperf_cpu_and_mem
