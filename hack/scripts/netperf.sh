@@ -37,7 +37,7 @@ iteration=10
 while [ $iteration -ge 0 ]
 do
     echo "============ Iteration $iteration ===============" 
-    kubectl exec -it $same_vm_pod -- netperf -H $target_pod_ip -l 30 -t TCP_STREAM >> "netperf/same_vm_iteration_$iteration.log"
+    kubectl exec -it $same_vm_pod -- netperf -H $target_pod_ip -l 30 -t TCP_STREAM >> "test3_netperf/same_vm_iteration_$iteration.log"
     echo "==============================="
     sleep 5s
     iteration=$((iteration-1))
@@ -48,7 +48,7 @@ iteration=10
 while [ $iteration -ge 0 ]
 do
     echo "============ Iteration $iteration ===============" 
-    kubectl exec -it $diff_vm_pod -- netperf -H $target_pod_ip -l 30 -t TCP_STREAM >> "netperf/diff_vm_iteration_$iteration.log"
+    kubectl exec -it $diff_vm_pod -- netperf -H $target_pod_ip -l 30 -t TCP_STREAM >> "test3_netperf/diff_vm_iteration_$iteration.log"
     echo "==============================="
     sleep 5s
     iteration=$((iteration-1))
