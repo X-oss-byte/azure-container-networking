@@ -131,41 +131,43 @@ stages:
           service: true
           hostport: true
   - stage: pod_deployment_windows
+    variables:
+      commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
     pool:
       name: $(BUILD_POOL_NAME_DEFAULT)
     dependsOn: datapath_tests
     displayName: "Pod Deployment"
     jobs:
       - job: deploy_pods
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
+        displayName: "Scale Test"
         steps:
           - template: ../load-test-templates/pod-deployment-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}
-              scaleup: ${WINDOWS_SCALEUP}
+              scaleup: 100 # change
               os: ${{ parameters.os }}
-              cni: ${{ parameters.cni }}
-              iterations: ${WINDOWS_ITERATIONS}
-  - stage: validate_state_windows
-    pool:
-      name: $(BUILD_POOL_NAME_DEFAULT)
-    dependsOn: pod_deployment_windows
-    displayName: "Validate State"
-    jobs:
-      - job: validate_state
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
-        steps:
+              iterations: 3 # change
           - template: ../load-test-templates/validate-state-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}
               os: ${{ parameters.os }}
-              cni: ${{ parameters.cni }}
-
+              cni: cniv1
+      - job: restart_nodes
+        displayName: "Restart Test"
+        dependsOn: deploy_pods
+        steps:
+          - template: ../load-test-templates/restart-node-template.yaml
+            parameters:
+              clusterName: ${{ parameters.clusterName }}
+          - template: ../load-test-templates/validate-state-template.yaml
+            parameters:
+              clusterName: ${{ parameters.clusterName }}
+              os: ${{ parameters.os }}
+              cni: cniv1
+              restartCase: "true"
   - stage: npm
     dependsOn:
-      - validate_state_windows
+      - pod_deployment_windows
       - setup
     displayName: NPM|CNI Release Test
     variables:

@@ -9,6 +9,7 @@ steps:
       scriptType: "bash"
       addSpnToEnvironment: true
       inlineScript: |
+        set -x
         echo "Scale up the pods and immediated restart the nodes"
         clusterName=${{ parameters.clusterName }}-$(make revision)
         make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${clusterName}
