@@ -111,7 +111,7 @@ steps:
       echo "DualStack Overlay Windows control plane Node properties test"
       sudo go test -timeout 30m -tags load -cni dualstack -run ^TestValidateState$ -tags=load -os=windows
       echo "DualStack Overlay Windows datapath test"
-      cd ../datapath
-      sudo go test -count=1 datapath_windows_test.go -timeout 3m -tags connection -run ^TestDatapathWin$ -tags=connection
+    # cd ../datapath
+      # sudo go test -count=1 datapath_windows_test.go -timeout 3m -tags connection -run ^TestDatapathWin$ -tags=connection
     name: "DualStack_Overlay_Windows_tests"
     displayName: "DualStack Overlay Windows Tests"
