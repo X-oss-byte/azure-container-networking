@@ -28,5 +28,7 @@ jobs:
       run: make -C crd/multitenantnetworkcontainer
     - name: Regenerate PodNetwork CRD
       run: make -C crd/external/podnetwork
+    - name: Regenerate MultitenantPodNetworkConfig CRD
+      run: make -C crd/multitenantpodnetworkconfig
     - name: Fail if the tree is dirty
       run: test -z "$(git status --porcelain)"
