@@ -115,12 +115,30 @@ stages:
               os: ${{ parameters.os }}
               cni: cniv2
               restartCase: "true"
+      - job: recover
+        displayName: "Recover Resources"
+        dependsOn: restart_nodes
+        steps:
+          - task: AzureCLI@1
+            inputs:
+              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+              scriptLocation: "inlineScript"
+              scriptType: "bash"
+              addSpnToEnvironment: true
+              inlineScript: |
+                echo "Delete load-test Namespace"
+                make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(commitID)
+                kubectl delete ns load-test
+                kubectl cluster-info
+                kubectl get po -owide -A
+            name: "recover"
+            displayName: "Delete test Namespaces"
       - template: ../k8s-e2e/k8s-e2e-job-template.yaml
         parameters:
           sub: $(TEST_SUB_SERVICE_CONNECTION)
           clusterName: ${{ parameters.clusterName }} # make revision will be removed once 2077 is merged, will need to add -$(commitID)
           os: ${{ parameters.os }}
-          dependsOn: restart_nodes
+          dependsOn: recover
           datapath: true
           dns: true
           portforward: true

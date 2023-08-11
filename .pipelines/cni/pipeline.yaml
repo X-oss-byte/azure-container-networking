@@ -121,7 +121,7 @@ stages:
       clusterType: "windows-cniv1-up"
       clusterName: "win-cniv1"
       nodeCount: ${WINDOWS_NODE_COUNT}
-      vmSize: Standard_B2ms
+      vmSize: Standard_DS4_v2
       windowsVMSize: ${WINDOWS_VM_SKU}
       arch: amd64
 
@@ -131,7 +131,7 @@ stages:
       clusterType: swift-byocni-up
       clusterName: linux-cniv2-podsubnet
       nodeCount: ${LINUX_NODE_COUNT}
-      vmSize: Standard_B2ms
+      vmSize: Standard_DS4_v2
       arch: amd64
 
   - template: singletenancy/linux-cniv2-template.yaml
@@ -140,7 +140,7 @@ stages:
       clusterType: overlay-byocni-up
       clusterName: linux-cniv2-overlay
       nodeCount: ${LINUX_NODE_COUNT}
-      vmSize: Standard_B2ms
+      vmSize: Standard_DS4_v2
       arch: amd64
 
   - stage: delete_resources
@@ -182,7 +182,7 @@ stages:
               scriptType: "bash"
               addSpnToEnvironment: true
               inlineScript: |
-                set -ex
+                set -x
                 if [ "$(DELETE_RESOURCES)" ]
                 then
                   echo "Deleting Cluster and resource group"

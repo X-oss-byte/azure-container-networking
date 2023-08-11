@@ -58,6 +58,7 @@ jobs:
         artifact: npm_k8s
 
       - bash: |
+          set -e
           # NetworkPolicy between server and...
           focus="\
           client should enforce policy to allow traffic only from a different namespace, based on NamespaceSelector|\
