@@ -16,7 +16,6 @@ import (
 // +kubebuilder:resource:shortName=pn
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Status",type=string,priority=1,JSONPath=`.status.status`
-// +kubebuilder:printcolumn:name="Error Message",type=string,priority=1,JSONPath=`.status.errorMessage`
 // +kubebuilder:printcolumn:name="Address Prefixes",type=string,priority=1,JSONPath=`.status.addressPrefixes`
 // +kubebuilder:printcolumn:name="Network",type=string,priority=1,JSONPath=`.spec.vnetGuid`
 // +kubebuilder:printcolumn:name="Subnet",type=string,priority=1,JSONPath=`.spec.subnetResourceID`
@@ -47,12 +46,10 @@ type PodNetworkSpec struct {
 }
 
 // Status indicates the status of PN
-// +kubebuilder:default=Nil
-// +kubebuilder:validation:Enum=Nil;Ready;InUse;SubnetNotDelegated
+// +kubebuilder:validation:Enum=Ready;InUse;SubnetNotDelegated
 type Status string
 
 const (
-	Nil                Status = "Nil"
 	Ready              Status = "Ready"
 	InUse              Status = "InUse"
 	SubnetNotDelegated Status = "SubnetNotDelegated"
@@ -62,7 +59,6 @@ const (
 type PodNetworkStatus struct {
 	// +kubebuilder:validation:Optional
 	Status          Status   `json:"status,omitempty"`
-	ErrorMessage    string   `json:"errorMessage,omitempty"`
 	AddressPrefixes []string `json:"addressPrefixes,omitempty"`
 }
 

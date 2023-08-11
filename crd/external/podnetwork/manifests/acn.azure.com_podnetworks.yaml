@@ -21,10 +21,6 @@ spec:
       name: Status
       priority: 1
       type: string
-    - jsonPath: .status.errorMessage
-      name: Error Message
-      priority: 1
-      type: string
     - jsonPath: .status.addressPrefixes
       name: Address Prefixes
       priority: 1
@@ -71,12 +67,9 @@ spec:
                 items:
                   type: string
                 type: array
-              errorMessage:
-                type: string
               status:
                 description: Status indicates the status of PN
                 enum:
-                - Nil
                 - Ready
                 - InUse
                 - SubnetNotDelegated
