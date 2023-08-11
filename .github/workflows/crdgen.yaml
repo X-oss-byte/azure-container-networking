@@ -28,6 +28,8 @@ jobs:
       run: make -C crd/multitenantnetworkcontainer
     - name: Regenerate PodNetworkInstance CRD
       run: make -C crd/external/podnetworkinstance
+    - name: Regenerate NodeInfo CRD
+      run: make -C crd/nodeinfo
     - name: Regenerate MultitenantPodNetworkConfig CRD
       run: make -C crd/multitenantpodnetworkconfig
     - name: Fail if the tree is dirty
