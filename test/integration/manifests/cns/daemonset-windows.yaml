@@ -31,7 +31,7 @@ spec:
           runAsUserName: "NT AUTHORITY\\SYSTEM"
       containers:
         - name: cns-container
-          image: acnpublic.azurecr.io/azure-cns:v1.5.5
+          image: acnpublic.azurecr.io/azure-cns:v1.5.9
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
