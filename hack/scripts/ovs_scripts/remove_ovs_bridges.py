@@ -18,7 +18,7 @@ ovsBridgeList = stdout[0].decode("utf-8".strip()).split('\n')
 # step 2: remove all ovs bridges
 for bridge in ovsBridgeList:
     if bridge != "":
-        deleteCommand = "ovs-vsctl del-br %s"%bridge
+        deleteCommand = f"ovs-vsctl del-br {bridge}"
         try:
             print("deleting ovs bridge by: ", deleteCommand)
             os.system(deleteCommand)
@@ -40,7 +40,7 @@ try:
 except subprocess.CalledProcessError:
     print("failed to execute ovs-dpctl show command")
     os.Exit(1)
-    
+
 stdout = ovsDPCtlShow.communicate()
 if stdout[0].decode("utf-8") != "":
     print("ovs flows still exist, please check if all ovs bridges are removed from system")
