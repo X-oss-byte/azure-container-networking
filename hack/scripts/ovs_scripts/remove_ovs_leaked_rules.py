@@ -10,7 +10,7 @@ try:
 except subprocess.CalledProcessError:
     print("failed to execute ovs-dpctl show command")
     os.Exit(1)
-    
+
 stdout = ovsDPCtlShow.communicate()
 
 usedPortList = re.findall("port (\d+)", str(stdout))
@@ -23,21 +23,17 @@ try:
 except subprocess.CalledProcessError:
     print("failed to execute ovs-ofctl dump-flows command")
     os.Exit(1)
-    
+
 stdout = ovsDumpFlows.communicate()
 allPortList = re.findall("in_port=(\d+)", str(stdout))
 
-unUsedPortList = []
-for port in allPortList:
-    if port not in usedPortList:
-        unUsedPortList.append(port)
-
+unUsedPortList = [port for port in allPortList if port not in usedPortList]
 # Step 3: delete leaked rules
 # only use unused ports
 for port in unUsedPortList:
-    deleteCommand = "ovs-ofctl del-flows azure0 ip,in_port=%s"%port
+    deleteCommand = f"ovs-ofctl del-flows azure0 ip,in_port={port}"
     try:
         os.system(deleteCommand)
     except:
-        print("delete command %s does not work"%deleteCommand)
+        print(f"delete command {deleteCommand} does not work")
         os.Exit(1)
